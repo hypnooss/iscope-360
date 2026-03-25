@@ -1,0 +1,60 @@
+module:
+
+  description: padrão de implementação de módulos do agent
+
+  identity:
+    required:
+      - name
+      - version
+
+  capabilities:
+    description: recursos necessários para execução
+    examples:
+      - network
+      - filesystem
+      - powershell
+      - ssh
+
+  input:
+    description: parâmetros esperados pelo módulo
+    rules:
+      - deve ser validado antes da execução
+      - deve ser sanitizado
+      - deve ser definido via task.payload.params
+
+  execution:
+
+    flow:
+      - validate
+      - execute
+      - normalize
+
+    rules:
+      - deve usar execution_engine
+      - deve respeitar timeout
+      - deve respeitar limites de CPU/memória
+      - não pode executar comandos arbitrários
+
+  output:
+
+    contract:
+      - deve seguir result.yaml
+
+    rules:
+      - output deve ser normalizado
+      - não retornar dados brutos sem tratamento
+      - deve incluir status e metadata
+
+  security:
+
+    rules:
+      - sanitizar inputs
+      - não aceitar comandos dinâmicos não validados
+      - não acessar recursos fora do escopo permitido
+
+  observability:
+
+    required:
+      - logs de execução
+      - tempo de execução
+      - status final

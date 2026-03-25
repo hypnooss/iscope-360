@@ -1,29 +1,66 @@
-templates:
+template:
 
-  description: definição dinâmica de coleta e análise
+  description: definição dinâmica de coleta, análise e avaliação
+
+  versioning:
+    strategy: semantic
 
   structure:
 
+    metadata:
+      - template_id
+      - name
+      - version
+      - category
+
     collection:
-      - source_type: api | ssh | command
-      - endpoint
-      - method
-      - params
+
+      description: como coletar os dados
+
+      fields:
+        source_type: api | ssh | command
+        endpoint: string
+        method: GET | POST | PUT | DELETE
+        params: object
+
+      rules:
+        - não conter lógica hardcoded no agent
+        - deve ser executável via módulo genérico
 
     parsing:
-      - extract_fields
-      - transformations
 
-    rules:
-      - condition
-      - severity
-      - expected
+      description: transformação de dados brutos
+
+      fields:
+        extract_fields: list
+        transformations: list
+
+      rules:
+        - deve produzir output estruturado
+        - não depender de parsing fixo no agent
 
     analysis:
-      - category
-      - tags
+
+      description: organização e classificação
+
+      fields:
+        category: string
+        tags: list
+
+    rules:
+
+      description: validações de compliance
+
+      fields:
+        - condition
+        - expected_value
+        - severity
 
     output:
-      - title
-      - description
-      - recommendation
+
+      description: apresentação final
+
+      fields:
+        title: string
+        description: string
+        recommendation: string
