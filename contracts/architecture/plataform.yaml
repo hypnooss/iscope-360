@@ -1,0 +1,128 @@
+platform:
+  architecture:
+    style: event-driven
+    multi_tenant: true
+    ingestion: async
+    processing: distributed
+
+  core_components:
+
+    ingestion_layer:
+      description: >
+        Camada responsável por receber dados de agents, scanners e integrações externas.
+      responsibilities:
+        - autenticação de agentes (mTLS / token)
+        - validação de payload
+        - normalização de dados
+        - roteamento para Kafka
+      protocols:
+        - HTTPS
+        - gRPC (futuro)
+
+    event_stream:
+      technology: Apache Kafka
+      responsibilities:
+        - buffer de ingestão
+        - desacoplamento
+        - replay de eventos
+      topics:
+        - logs.raw
+        - metrics.raw
+        - compliance.results
+        - scan.jobs
+        - scan.results
+        - alerts.generated
+
+    storage:
+
+      opensearch:
+        role: logs_and_events
+        responsibilities:
+          - armazenamento de logs
+          - indexação full-text
+          - suporte a SIEM (futuro: Wazuh)
+        retention_policy:
+          hot: 7d
+          warm: future
+        indexing_strategy:
+          - tenant_id
+          - data_type
+          - timestamp
+
+      timescaledb:
+        role: metrics
+        responsibilities:
+          - armazenamento de métricas time-series
+          - compressão e retenção
+        data_model:
+          - host_metrics
+          - service_metrics
+
+      postgresql_core:
+        role: application_state
+        responsibilities:
+          - tenants (multi-tenant)
+          - users / RBAC
+          - assets
+          - configurations
+          - blueprints
+          - audit logs
+
+    processing_layer:
+      description: workers assíncronos consumindo Kafka
+      workers:
+        - logs_processor
+        - metrics_processor
+        - compliance_processor
+        - alert_engine
+        - scan_orchestrator
+
+    siem_layer:
+      optional: true
+      suggested: Wazuh
+      responsibilities:
+        - correlação de eventos
+        - regras de detecção
+        - geração de alertas
+
+    api_layer:
+      description: backend da aplicação
+      responsibilities:
+        - CRUD (assets, tenants, configs)
+        - exposição de dados agregados
+        - controle de acesso
+      style:
+        - REST (inicial)
+        - GraphQL (futuro)
+
+    realtime_layer:
+      description: comunicação com frontend
+      technologies:
+        - WebSocket
+        - Kafka bridge (futuro)
+      use_cases:
+        - alertas em tempo real
+        - status de jobs
+
+  multi_tenant:
+    strategy:
+      - tenant_id em todas entidades
+      - isolamento lógico
+      - RLS (PostgreSQL)
+    future:
+      - isolamento físico (por cliente enterprise)
+
+  security:
+    agent_auth:
+      - mTLS (preferencial)
+      - token rotativo
+    encryption:
+      - in_transit: TLS
+      - at_rest: enabled
+    secrets:
+      - vault (futuro)
+
+  observability:
+    logs: OpenSearch
+    metrics: TimescaleDB
+    tracing: OpenTelemetry (futuro)

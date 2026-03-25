@@ -1,0 +1,29 @@
+templates:
+
+  description: definição dinâmica de coleta e análise
+
+  structure:
+
+    collection:
+      - source_type: api | ssh | command
+      - endpoint
+      - method
+      - params
+
+    parsing:
+      - extract_fields
+      - transformations
+
+    rules:
+      - condition
+      - severity
+      - expected
+
+    analysis:
+      - category
+      - tags
+
+    output:
+      - title
+      - description
+      - recommendation

@@ -1,0 +1,244 @@
+agent:
+  architecture:
+    type: modular
+    execution_model: controlled_execution_runtime
+    update_strategy: atomic_with_rollback
+
+  core:
+
+    config_manager:
+      responsibilities:
+        - receber configuração da plataforma
+        - aplicar blueprints
+        - versionamento de config
+        - rollback
+
+    task_engine:
+      responsibilities:
+        - consumir tasks da plataforma
+        - validar estrutura da task
+        - validar allowlist de módulos
+        - encaminhar para fila interna
+        - gerenciar ciclo de vida da execução
+      states:
+        - received
+        - validated
+        - queued
+        - running
+        - success
+        - failed
+        - retrying
+
+    scheduler:
+      responsibilities:
+        - agendamento de tasks locais
+        - retry com backoff exponencial
+        - execução periódica (heartbeat, sync)
+
+    internal_queue:
+      type: in_memory + sqlite_fallback
+      responsibilities:
+        - enfileirar tasks
+        - controlar concorrência
+        - garantir ordem de execução
+
+    transport_layer:
+      responsibilities:
+        - envio de dados (logs, métricas, resultados)
+        - retry automático
+        - buffer local (offline mode)
+        - compressão
+      protocols:
+        - HTTPS
+        - gRPC (futuro)
+
+    identity:
+      responsibilities:
+        - autenticação com backend
+        - gerenciamento de certificados/tokens
+      methods:
+        - mTLS
+        - token rotativo
+
+  local_storage:
+
+    engine:
+      type: sqlite
+
+    responsibilities:
+      - persistência de estado
+      - controle de tasks
+      - suporte a retry
+      - suporte a rollback
+      - buffer offline
+
+    data_models:
+      agent_state:
+      tasks:
+      task_history:
+      update_state:
+      config_state:
+
+    behaviors:
+      crash_recovery:
+      retry_logic:
+      offline_mode:
+      retention:
+
+  telemetry:
+
+    opentelemetry_collector:
+      mode: embedded
+
+  execution:
+
+    execution_engine:
+      responsibilities:
+        - orquestrar execução de módulos
+        - aplicar timeout obrigatório
+        - aplicar limites de CPU/memória
+        - aplicar isolamento (sandbox)
+        - padronizar output
+
+    module_registry:
+      responsibilities:
+        - registrar módulos disponíveis
+        - mapear módulo → adapter
+
+    module_adapters:
+      responsibilities:
+        - encapsular execução de ferramentas
+        - sanitizar parâmetros
+        - capturar output
+        - normalizar saída
+
+      existing_modules:
+        - nmap
+        - masscan
+        - amass
+        - httpx
+        - nuclei
+        - powershell
+        - ssh
+        - bloodhound
+        - pingcastle
+
+    sandbox:
+      strategies:
+        - subprocess_controlled
+        - cgroups (linux)
+        - job_objects (windows)
+        - container (futuro)
+
+    execution_limits:
+      timeout: required
+      cpu_limit: configurable
+      memory_limit: configurable
+      concurrency_control:
+        global_limit: configurable
+        per_module_limit: configurable
+
+    output_schema:
+      standard:
+        - module
+        - target
+        - status
+        - result
+        - error
+        - timestamp
+
+  compliance_module:
+    responsibilities:
+      - execução de blueprints
+      - uso do execution_engine
+
+  internal_scan_module:
+    responsibilities:
+      - scans internos controlados
+      - descoberta de rede local
+      - análise de serviços internos
+
+    constraints:
+      - rate_limit
+      - escopo restrito
+      - controle via plataforma
+
+  cloud_identity:
+
+    providers:
+      - azure_ad
+
+    azure_ad:
+      auth_method: certificate_based
+      capabilities:
+        - microsoft_graph
+        - exchange_online_powershell
+        - sharepoint_api
+
+      certificate_management:
+        storage:
+          - OS_keystore
+        requirements:
+          - private_key_protected
+          - encryption_at_rest
+
+      token_flow:
+        type: client_credentials
+
+  local_capabilities:
+    supported_os:
+      - linux
+      - windows
+
+  update_system:
+
+    bootstrap:
+      responsibilities:
+        - garantir inicialização
+        - fallback seguro
+
+    supervisor:
+      responsibilities:
+        - gerenciar runtime
+        - orquestrar updates
+
+    update_flow:
+      - download
+      - verify_signature
+      - start_new_instance
+      - health_check
+      - switch
+      - cleanup_old
+
+    rollback:
+      enabled: true
+
+    rollout:
+      strategy:
+        - canary
+        - staged
+
+  observability:
+
+    task_logging:
+    health_monitoring:
+
+  security:
+
+    task_validation:
+      - schema_validation
+      - allowlist_modules
+
+    execution_security:
+      - sandbox obrigatório
+      - sem execução arbitrária
+
+    communication:
+      - TLS obrigatório
+
+  extensibility:
+
+    plugin_system:
+      responsibilities:
+        - adicionar novos módulos
+        - adicionar adapters

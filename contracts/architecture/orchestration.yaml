@@ -1,0 +1,34 @@
+orchestration:
+
+  responsibilities:
+    - dividir workloads
+    - distribuir tasks entre agents
+    - controlar execução paralela
+    - gerenciar retry
+    - controlar fluxo (backpressure)
+
+  task_distribution:
+
+    batching:
+      size: 10
+
+    scheduling:
+      strategy:
+        - round_robin
+        - load_based
+
+  flow_control:
+    - esperar conclusão antes de enviar mais
+    - evitar overload
+
+  task_model:
+
+    parent_task:
+      description: tarefa principal (ex: scan 60 IPs)
+
+    child_tasks:
+      description: tarefas distribuídas (10 IPs cada)
+
+  result_aggregation:
+    - consolidar resultados
+    - correlacionar dados

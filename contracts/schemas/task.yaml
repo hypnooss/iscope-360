@@ -1,0 +1,36 @@
+{
+  "task_id": "uuid",
+  "tenant_id": "uuid",
+  "target": {
+    "type": "agent | scan_worker",
+    "id": "agent_id"
+  },
+  "type": "compliance | internal_scan | external_scan",
+  "action": "execute",
+
+  "payload": {
+    "module": "nmap | nuclei | ssh_check | m365_audit",
+    "params": {},
+    "limits": {
+      "timeout": 300,
+      "cpu": "low",
+      "rate": "safe"
+    }
+  },
+
+  "execution": {
+    "priority": "low | medium | high",
+    "schedule": "immediate | cron",
+    "retry": 3
+  },
+
+  "security": {
+    "signed": true,
+    "signature": "hash"
+  },
+
+  "metadata": {
+    "created_by": "user_id",
+    "source": "system | user | automation"
+  }
+}
