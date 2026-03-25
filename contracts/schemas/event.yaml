@@ -1,0 +1,27 @@
+event:
+
+  description: eventos trafegados no sistema (Kafka)
+
+  types:
+    - task.created
+    - task.dispatched
+    - task.started
+    - task.completed
+    - task.failed
+    - agent.heartbeat
+    - alert.generated
+
+  structure:
+
+    metadata:
+      - event_id
+      - type
+      - timestamp
+      - tenant_id
+
+    payload:
+      - arbitrary data
+
+  rules:
+    - todo evento deve ser versionado
+    - eventos devem ser idempotentes

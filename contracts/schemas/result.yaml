@@ -1,0 +1,35 @@
+result:
+
+  description: resposta padrão do agent para a plataforma
+
+  structure:
+
+    metadata:
+      - task_id
+      - agent_id
+      - module
+      - timestamp
+
+    status:
+      - success
+      - failed
+      - partial
+
+    execution:
+      - duration
+      - retries
+      - resources_used
+
+    data:
+      description: resultado normalizado
+      type: object
+
+    errors:
+      - code
+      - message
+      - details
+
+  rules:
+    - todo resultado deve seguir esse schema
+    - output deve ser normalizado
+    - erros devem ser estruturados

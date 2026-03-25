@@ -26,6 +26,7 @@ Agent (Execução)
 
 # 🧩 Mapa Completo
 
+
 Platform
 
  ├── Infrastructure (Kafka, DB, APIs)
@@ -35,6 +36,7 @@ Platform
  ├── Templates (inteligência do produto)
 
  └── Processing (workers)
+
 
 
 Agent
@@ -48,6 +50,7 @@ Agent
  ├── Sandbox
 
  └── Local Storage
+
 
 
 Task
@@ -202,18 +205,25 @@ Toda execução deve:
 # 🔄 Fluxo de Execução
 
 Platform
+
    ↓   
 Orchestration
+
    ↓   
 Task (contrato)
+
    ↓   
 Agent
+
    ↓   
 Execution Engine
+
    ↓   
 Module Adapter
+
    ↓   
 Tool (nmap, httpx, etc.)
+
    ↓   
 Resultado → Platform
 

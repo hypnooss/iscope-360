@@ -1,0 +1,24 @@
+rules:
+
+  execution:
+
+    - all_tasks_must_be_validated
+    - all_execution_must_use_execution_engine
+    - sandbox_is_mandatory
+
+  security:
+
+    - no_arbitrary_command_execution
+    - modules_must_be_allowlisted
+    - communication_must_use_tls
+
+  architecture:
+
+    - no_business_logic_in_agent
+    - templates_must_not_be_hardcoded
+    - no_direct_backend_access_from_agent
+
+  updates:
+
+    - must_support_rollback
+    - must_be_atomic

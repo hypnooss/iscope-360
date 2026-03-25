@@ -1,0 +1,16 @@
+principles:
+
+  - agent_is_stateless_executor:
+      description: agent não toma decisões, apenas executa tasks
+
+  - platform_is_source_of_truth:
+      description: toda inteligência vive na plataforma
+
+  - no_hardcoding:
+      description: lógica deve ser definida via templates ou configs
+
+  - controlled_execution:
+      description: toda execução passa pelo execution_engine
+
+  - full_auditability:
+      description: todas ações devem ser rastreáveis
