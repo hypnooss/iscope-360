@@ -1,45 +1,100 @@
 errors:
 
-  agent:
+  version: 1.0
 
-    AGENT_TIMEOUT:
-      code: 1001
-      description: execution exceeded configured timeout
+  structure:
 
-    AGENT_UNAVAILABLE:
-      code: 1002
-      description: agent is offline or unreachable
+    fields:
+      - code
+      - name
+      - category
+      - description
+      - severity
+      - retriable
 
-  task:
+  categories:
+    - agent
+    - task
+    - module
+    - execution
 
-    INVALID_TASK:
-      code: 2001
-      description: task structure is invalid
+  registry:
 
-    TASK_VALIDATION_FAILED:
-      code: 2002
-      description: task failed validation rules
+    agent:
 
-  module:
+      AGENT_TIMEOUT:
+        code: 1001
+        category: agent
+        description: execution exceeded configured timeout
+        severity: error
+        retriable: true
 
-    MODULE_NOT_ALLOWED:
-      code: 3001
-      description: module is not in allowlist
+      AGENT_UNAVAILABLE:
+        code: 1002
+        category: agent
+        description: agent is offline or unreachable
+        severity: error
+        retriable: true
 
-    MODULE_EXECUTION_FAILED:
-      code: 3002
-      description: module execution returned an error
+    task:
 
-    INVALID_PARAMETERS:
-      code: 3003
-      description: input parameters are invalid
+      INVALID_TASK:
+        code: 2001
+        category: task
+        description: task structure is invalid
+        severity: error
+        retriable: false
 
-  execution:
+      TASK_VALIDATION_FAILED:
+        code: 2002
+        category: task
+        description: task failed validation rules
+        severity: error
+        retriable: false
 
-    SANDBOX_VIOLATION:
-      code: 4001
-      description: execution attempted to escape sandbox
+    module:
 
-    RESOURCE_LIMIT_EXCEEDED:
-      code: 4002
-      description: CPU or memory limit exceeded
+      MODULE_NOT_ALLOWED:
+        code: 3001
+        category: module
+        description: module is not in allowlist
+        severity: error
+        retriable: false
+
+      MODULE_EXECUTION_FAILED:
+        code: 3002
+        category: module
+        description: module execution returned an error
+        severity: error
+        retriable: true
+
+      INVALID_PARAMETERS:
+        code: 3003
+        category: module
+        description: input parameters are invalid
+        severity: error
+        retriable: false
+
+    execution:
+
+      SANDBOX_VIOLATION:
+        code: 4001
+        category: execution
+        description: execution attempted to escape sandbox
+        severity: critical
+        retriable: false
+
+      RESOURCE_LIMIT_EXCEEDED:
+        code: 4002
+        category: execution
+        description: CPU or memory limit exceeded
+        severity: error
+        retriable: true
+
+  usage:
+
+    rules:
+      - erros devem ser retornados no formato definido em result.yaml
+      - code deve ser único no sistema
+      - category deve corresponder ao domínio do erro
+      - retriable deve ser respeitado pelo orchestration

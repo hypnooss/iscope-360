@@ -1,35 +1,57 @@
 result:
 
+  version: 1.0
+
   description: resposta padrão do agent para a plataforma
 
   structure:
 
     metadata:
-      - task_id
-      - agent_id
-      - module
-      - timestamp
+      task_id: uuid
+      correlation_id: uuid
+      agent_id: string
+      tenant_id: uuid
+      module: string
+      timestamp: datetime
 
     status:
-      - success
-      - failed
-      - partial
+      allowed:
+        - success
+        - failed
+        - partial
 
     execution:
-      - duration
-      - retries
-      - resources_used
+
+      duration_ms: number
+      retries: number
+
+      resources:
+
+        cpu_usage: number
+        memory_usage: number
 
     data:
       description: resultado normalizado
       type: object
 
-    errors:
-      - code
-      - message
-      - details
+    error:
+
+      structure:
+        code: number
+        name: string
+        category: string
+        description: string
+        retriable: boolean
+        details: object
+
+      source:
+        reference: errors.yaml
 
   rules:
+
     - todo resultado deve seguir esse schema
-    - output deve ser normalizado
-    - erros devem ser estruturados
+    - metadata.correlation_id é obrigatório
+    - status deve refletir corretamente a execução
+    - data deve ser normalizado
+    - erros devem seguir errors.yaml
+    - result deve ser compatível com protocol.message_contracts

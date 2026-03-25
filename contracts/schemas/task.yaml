@@ -1,36 +1,64 @@
-{
-  "task_id": "uuid",
-  "tenant_id": "uuid",
-  "target": {
-    "type": "agent | scan_worker",
-    "id": "agent_id"
-  },
-  "type": "compliance | internal_scan | external_scan",
-  "action": "execute",
+task:
 
-  "payload": {
-    "module": "nmap | nuclei | ssh_check | m365_audit",
-    "params": {},
-    "limits": {
-      "timeout": 300,
-      "cpu": "low",
-      "rate": "safe"
-    }
-  },
+  version: 1.0
 
-  "execution": {
-    "priority": "low | medium | high",
-    "schedule": "immediate | cron",
-    "retry": 3
-  },
+  structure:
 
-  "security": {
-    "signed": true,
-    "signature": "hash"
-  },
+    identification:
+      task_id: uuid
+      correlation_id: uuid
+      tenant_id: uuid
 
-  "metadata": {
-    "created_by": "user_id",
-    "source": "system | user | automation"
-  }
-}
+    target:
+      type: agent | scan_worker
+      id: agent_id
+
+    type: compliance | internal_scan | external_scan
+
+    action: execute
+
+    payload:
+
+      module: nmap | nuclei | ssh_check | m365_audit
+
+      params: object
+
+      limits:
+        timeout: number
+        cpu: low | medium | high
+        rate: safe | aggressive
+
+    execution:
+
+      priority: low | medium | high
+
+      schedule:
+        type: immediate | cron
+        value: string  # cron expression se aplicável
+
+      retry: number
+
+    execution_constraints:
+
+      requires_role:
+        - proxy
+
+      network_zone:
+        - internal
+
+    security:
+
+      signed: boolean
+      signature: string
+
+    metadata:
+
+      created_by: user_id
+      source: system | user | automation
+      timestamp: datetime
+
+  rules:
+    - toda task deve conter task_id e correlation_id
+    - payload.module deve ser válido no module.yaml
+    - execution_constraints devem ser respeitados pelo scheduler
+    - tasks devem ser idempotentes

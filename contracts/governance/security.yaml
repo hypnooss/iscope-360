@@ -1,34 +1,130 @@
 security:
-  
-  description: governaça de segurança para tasks e comunicações
+
+  version: 1.0
+
+  description: governança de segurança para tasks, agentes e comunicações
 
   signing:
-    description: garantia de integridade e autenticidade de tasks
-    mechanism: HMAC-SHA256 | RSA-PSS | Ed25519
+
+    description: garantia de integridade e autenticidade de mensagens
+
+    mechanisms:
+      allowed:
+        - HMAC-SHA256
+        - RSA-PSS
+        - Ed25519
+
+      preferred:
+        - Ed25519
+
     required_fields:
       - task_id
       - tenant_id
-      - payload (hashed)
+      - correlation_id
+      - payload_hash
+
+    rules:
+      - toda task deve ser assinada pela plataforma
+      - agent deve validar assinatura antes de executar
+      - mensagens inválidas devem ser descartadas
+
     verification:
-      agent: deve validar assinatura antes de enfileirar
-      platform: deve assinar toda task emitida
+
+      agent:
+        - validar assinatura antes de enfileirar
+        - rejeitar mensagens inválidas
+
+      platform:
+        - assinar toda task emitida
+        - validar integridade de resultados recebidos
+
+    key_management:
+
+      rotation:
+        required: true
+        strategy:
+          - periodic
+          - on_compromise
+
+      storage:
+        - secure_keystore
+        - HSM (futuro)
 
   encryption:
+
     in_transit:
+
       protocol: TLS 1.3
-      requirement: mTLS para agentes críticos
+
+      rules:
+        - comunicação deve usar TLS obrigatório
+        - mTLS obrigatório para autenticação de agentes
+        - certificados devem ser validados
+
     at_rest:
-      agent: SQLite com encriptação (sqlcipher) opcional
-      platform: encriptação nativa do banco de dados
+
+      agent:
+        storage: SQLite
+        encryption: sqlcipher_optional
+
+      platform:
+        encryption: enabled
 
   secrets_management:
+
     agent:
-      - não armazenar segredos em texto claro
-      - usar OS Keystore ou variáveis de ambiente seguras
+
+      rules:
+        - não armazenar segredos em texto claro
+        - usar OS keystore quando disponível
+        - usar criptografia local quando necessário
+
     platform:
-      - usar HashiCorp Vault ou equivalente
-      - segredos rotativos para integração com nuvem
+
+      tools:
+        - HashiCorp Vault (recomendado)
+
+      rules:
+        - segredos devem ser rotacionados
+        - acesso deve ser auditado
+        - segregação por tenant
 
   access_control:
+
     model: RBAC
-    agent_identity: cada agente possui uma identidade única (UUID + Certificado)
+
+    agent_identity:
+
+      components:
+        - agent_id
+        - certificate
+        - tenant_id
+
+      rules:
+        - identidade deve ser única
+        - autenticação deve usar mTLS
+        - identidade deve ser validada pela plataforma
+
+  proxy_security:
+
+    description: regras de segurança para agentes com role proxy
+
+    rules:
+      - proxy deve operar sob menor privilégio possível
+      - acesso a redes internas deve ser controlado
+      - todas ações devem ser auditadas
+      - proxy não deve armazenar credenciais sensíveis permanentemente
+
+  communication_security:
+
+    rules:
+      - todas mensagens devem conter correlation_id
+      - todas mensagens devem ser autenticadas
+      - payloads devem ser validados contra schema
+
+  compliance:
+
+    rules:
+      - todas ações devem ser auditáveis
+      - logs de segurança devem ser centralizados
+      - eventos críticos devem gerar alertas

@@ -126,3 +126,16 @@ platform:
     logs: OpenSearch
     metrics: TimescaleDB
     tracing: OpenTelemetry (futuro)
+
+agent_management:
+
+  roles:
+    - proxy
+    - worker
+
+  proxy_management:
+
+    responsibilities:
+      - manter lista de proxies ativos
+      - monitorar health
+      - priorizar proxies

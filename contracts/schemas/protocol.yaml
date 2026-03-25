@@ -1,0 +1,92 @@
+protocol:
+
+  version: 1.0
+
+  description: comunicação bidirecional entre Agent e Platform via streaming
+
+  transport:
+
+    primary:
+      - websocket
+      - grpc_stream
+
+    requirements:
+      - conexão persistente
+      - mensagens bidirecionais
+      - suporte a reconexão
+      - keepalive obrigatório
+
+  envelope:
+
+    description: estrutura padrão de qualquer mensagem
+
+    fields:
+      - message_id
+      - type
+      - timestamp
+      - correlation_id
+      - agent_id
+      - tenant_id
+      - version
+      - payload
+
+    optional_fields:
+      - via_proxy
+
+  message_types:
+
+    # conexão
+    - agent.connect
+    - agent.auth
+    - agent.ready
+    - agent.disconnect
+
+    # vida do agent
+    - agent.heartbeat
+    - agent.status
+
+    # tarefas
+    - task.dispatch
+    - task.cancel
+
+    # execução
+    - task.started
+    - task.progress
+    - task.completed
+    - task.failed
+
+    # treaming / acesso remoto
+    - stream.open
+    - stream.data
+    - stream.close
+
+    # proxy / discovery
+    - proxy.discovery.request
+    - proxy.discovery.response
+    - proxy.health
+
+    # erro
+    - error
+
+  message_contracts:
+
+    task.dispatch:
+      payload_schema: task.yaml
+
+    task.completed:
+      payload_schema: result.yaml
+
+    task.failed:
+      payload_schema: result.yaml
+
+    error:
+      payload_schema: errors.yaml
+
+  rules:
+
+    - toda mensagem deve seguir o envelope
+    - toda mensagem deve ter correlation_id
+    - toda mensagem deve ter version
+    - type deve existir em message_types
+    - payload deve respeitar o schema associado
+    - mensagens devem ser idempotentes

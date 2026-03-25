@@ -1,24 +1,180 @@
 rules:
 
+  version: 1.0
+
   execution:
 
-    - all_tasks_must_be_validated
-    - all_execution_must_use_execution_engine
-    - sandbox_is_mandatory
+    - id: EXEC-001
+      name: task_must_be_validated
+      description: toda task deve ser validada antes da execução
+      applies_to:
+        - agent
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - task.yaml
+
+    - id: EXEC-002
+      name: execution_must_use_engine
+      description: toda execução deve passar pelo execution_engine
+      applies_to:
+        - agent
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - agent.yaml
+        - module.yaml
+
+    - id: EXEC-003
+      name: sandbox_is_mandatory
+      description: toda execução deve ocorrer em sandbox
+      applies_to:
+        - agent
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - agent.yaml
 
   security:
 
-    - no_arbitrary_command_execution
-    - modules_must_be_allowlisted
-    - communication_must_use_tls
+    - id: SEC-001
+      name: no_arbitrary_command_execution
+      description: execução de comandos arbitrários é proibida
+      applies_to:
+        - agent
+        - module
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - module.yaml
+
+    - id: SEC-002
+      name: modules_must_be_allowlisted
+      description: apenas módulos registrados podem ser executados
+      applies_to:
+        - agent
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - module.yaml
+
+    - id: SEC-003
+      name: communication_must_use_tls
+      description: toda comunicação deve usar TLS/mTLS
+      applies_to:
+        - agent
+        - platform
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - agent.yaml
+        - platform.yaml
 
   architecture:
 
-    - no_business_logic_in_agent
-    - templates_must_not_be_hardcoded
-    - no_direct_backend_access_from_agent
+    - id: ARCH-001
+      name: no_business_logic_in_agent
+      description: agent não deve conter lógica de negócio
+      applies_to:
+        - agent
+      enforcement:
+        type: code_review
+        level: error
+      references:
+        - principles.yaml
+
+    - id: ARCH-002
+      name: no_hardcoding
+      description: lógica não deve ser hardcoded
+      applies_to:
+        - platform
+        - agent
+      enforcement:
+        type: code_review
+        level: error
+      references:
+        - principles.yaml
+        - template-definition.yaml
+
+    - id: ARCH-003
+      name: no_direct_backend_access_from_agent
+      description: agent não deve acessar diretamente serviços internos da plataforma
+      applies_to:
+        - agent
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - protocol.yaml
+
+  orchestration:
+
+    - id: ORCH-001
+      name: constraints_must_be_respected
+      description: execution_constraints devem ser respeitados pelo scheduler
+      applies_to:
+        - platform
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - task.yaml
+        - orchestration.yaml
+
+    - id: ORCH-002
+      name: proxy_must_be_used_when_required
+      description: tasks com requires_role=proxy devem ser executadas por proxy
+      applies_to:
+        - platform
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - task.yaml
+        - agent.yaml
+
+  observability:
+
+    - id: OBS-001
+      name: correlation_id_required
+      description: toda execução deve possuir correlation_id
+      applies_to:
+        - agent
+        - platform
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - task.yaml
+        - event.yaml
+        - result.yaml
 
   updates:
 
-    - must_support_rollback
-    - must_be_atomic
+    - id: UPD-001
+      name: updates_must_support_rollback
+      description: sistema de update deve suportar rollback
+      applies_to:
+        - agent
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - agent.yaml
+
+    - id: UPD-002
+      name: updates_must_be_atomic
+      description: updates devem ser atômicos
+      applies_to:
+        - agent
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - agent.yaml

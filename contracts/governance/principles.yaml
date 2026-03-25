@@ -1,16 +1,83 @@
 principles:
 
-  - agent_is_stateless_executor:
-      description: agent não toma decisões, apenas executa tasks
+  version: 1.0
 
-  - platform_is_source_of_truth:
-      description: toda inteligência vive na plataforma
+  agent_is_stateless_executor:
+    description: agent não toma decisões, apenas executa tasks
 
-  - no_hardcoding:
-      description: lógica deve ser definida via templates ou configs
+    implications:
+      - agent não contém lógica de negócio
+      - agent não decide qual task executar
+      - agent executa apenas o que foi definido pela plataforma
 
-  - controlled_execution:
-      description: toda execução passa pelo execution_engine
+  platform_is_source_of_truth:
+    description: toda inteligência vive na plataforma
 
-  - full_auditability:
-      description: todas ações devem ser rastreáveis
+    implications:
+      - templates definem comportamento do sistema
+      - regras de compliance não existem no agent
+      - decisões de execução são feitas pela plataforma
+
+  no_hardcoding:
+    description: lógica deve ser definida via templates ou configs
+
+    implications:
+      - não implementar lógica fixa para integrações (ex: fortigate, m365)
+      - toda coleta deve ser configurável
+      - módulos devem ser genéricos
+
+  controlled_execution:
+    description: toda execução passa pelo execution_engine
+
+    implications:
+      - execução direta de comandos é proibida
+      - todos módulos devem usar execution_engine
+      - sandbox é obrigatório
+
+  full_auditability:
+    description: todas ações devem ser rastreáveis
+
+    implications:
+      - toda task deve ter correlation_id
+      - execução deve gerar logs estruturados
+      - eventos devem ser persistidos
+
+  secure_by_default:
+    description: segurança é obrigatória por padrão
+
+    implications:
+      - comunicação deve usar TLS/mTLS
+      - tasks devem ser validadas e assinadas
+      - módulos devem respeitar capabilities declaradas
+
+  proxy_is_execution_node:
+    description: proxy é um agente com acesso privilegiado, não um orquestrador
+
+    implications:
+      - proxy executa tasks diretamente
+      - proxy não controla outros agents
+      - proxy é selecionado pela plataforma
+
+  constraint_driven_execution:
+    description: execução deve respeitar constraints definidas na task
+
+    implications:
+      - requires_role deve ser respeitado
+      - network_zone deve ser respeitado
+      - scheduler deve validar constraints antes de execução
+
+  deterministic_modules:
+    description: módulos devem ser determinísticos
+
+    implications:
+      - mesma entrada deve gerar mesma saída
+      - facilita retry e debugging
+      - evita comportamento imprevisível
+
+  multi_tenant_isolation:
+    description: isolamento entre tenants é obrigatório
+
+    implications:
+      - tenant_id deve estar presente em todas operações
+      - dados não podem ser compartilhados entre tenants
+      - storage deve respeitar isolamento lógico

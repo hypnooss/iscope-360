@@ -2,14 +2,30 @@ event:
 
   description: eventos trafegados no sistema (Kafka)
 
+  version: 1.0
+
   types:
+
+    # Task lifecycle
     - task.created
     - task.dispatched
     - task.started
     - task.completed
     - task.failed
+
+    # Agent
     - agent.heartbeat
+    - agent.connected
+    - agent.disconnected
+    - agent.status
+
+    # Alertas
     - alert.generated
+
+    # Proxy
+    - proxy.promoted
+    - proxy.demoted
+    - proxy.unavailable
 
   structure:
 
@@ -18,10 +34,12 @@ event:
       - type
       - timestamp
       - tenant_id
+      - correlation_id
 
     payload:
-      - arbitrary data
+      type: object
 
   rules:
     - todo evento deve ser versionado
     - eventos devem ser idempotentes
+    - type deve existir em event.types

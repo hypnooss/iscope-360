@@ -1,25 +1,56 @@
 orchestration:
 
+  version: 1.0
+
   responsibilities:
     - dividir workloads
     - distribuir tasks entre agents
+    - respeitar execution_constraints
+    - selecionar agent adequado
     - controlar execução paralela
     - gerenciar retry
     - controlar fluxo (backpressure)
+    - agregar resultados
 
   task_distribution:
 
     batching:
-      size: 10
+      size: configurable
 
     scheduling:
+
       strategy:
         - round_robin
         - load_based
+        - capability_based
+        - constraint_based
+
+      agent_selection:
+
+        inputs:
+          - agent_capabilities
+          - agent_role
+          - agent_health
+          - network_zone
+
+        rules:
+          - respeitar execution_constraints da task
+          - selecionar proxy quando requires_role=proxy
+          - evitar agents indisponíveis
+          - priorizar agents com menor carga
 
   flow_control:
-    - esperar conclusão antes de enviar mais
-    - evitar overload
+
+    concurrency:
+      max_parallel_tasks: configurable
+
+    backpressure:
+      enabled: true
+
+    rules:
+      - evitar sobrecarga de agents
+      - respeitar limites globais
+      - respeitar limites por agent
 
   task_model:
 
@@ -29,6 +60,57 @@ orchestration:
     child_tasks:
       description: tarefas distribuídas (10 IPs cada)
 
+    lifecycle:
+      states:
+        - created
+        - distributed
+        - running
+        - partial
+        - completed
+        - failed
+
+    idempotency:
+      required: true
+
+  retry_policy:
+
+    strategy:
+      - exponential_backoff
+
+    max_retries: configurable
+
+    conditions:
+      - agent_failure
+      - timeout
+      - transient_error
+
   result_aggregation:
-    - consolidar resultados
-    - correlacionar dados
+
+    responsibilities:
+      - consolidar resultados
+      - correlacionar dados
+      - eliminar duplicidade
+
+    rules:
+      - resultados devem seguir result.yaml
+      - aggregation deve ser idempotente
+
+  proxy_awareness:
+
+    enabled: true
+
+    rules:
+      - tasks com requires_role=proxy devem ser executadas por proxy
+      - considerar múltiplos proxies
+      - suportar failover de proxy
+
+  observability:
+
+    metrics:
+      - tasks_dispatched
+      - tasks_completed
+      - tasks_failed
+      - scheduling_latency
+
+    tracing:
+      - correlation_id obrigatório

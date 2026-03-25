@@ -90,6 +90,70 @@ agent:
     opentelemetry_collector:
       mode: embedded
 
+  connection_manager:
+
+  responsibilities:
+    - manter conexão persistente
+    - reconectar automaticamente
+    - gerenciar estado de conexão
+    - detectar falhas
+
+  states:
+    - connecting
+    - connected
+    - disconnected
+    - reconnecting
+
+  communication:
+
+  mode:
+    primary: streaming
+    fallback: polling
+
+  streaming:
+
+    enabled: true
+    technologies:
+      - websocket
+      - grpc_stream
+
+    responsibilities:
+      - receber tasks em tempo real
+      - enviar resultados
+      - enviar eventos
+      - suportar remote access
+
+    connection:
+
+      lifecycle:
+        - connect
+        - authenticate
+        - maintain
+        - reconnect
+
+      requirements:
+        - keepalive obrigatório
+        - reconexão automática
+        - tolerância a falhas
+
+  fallback:
+
+    polling:
+      interval: configurable
+      use_cases:
+        - fallback em falha de conexão
+        - ambientes restritivos
+
+  heartbeat:
+
+    required: true
+    purpose:
+      - health check
+      - métricas
+      - presença do agent
+
+    interval: configurable
+
   execution:
 
     execution_engine:
@@ -242,3 +306,40 @@ agent:
       responsibilities:
         - adicionar novos módulos
         - adicionar adapters
+roles:
+
+  available:
+    - worker
+    - proxy
+
+  assignment:
+    controlled_by: platform
+
+proxy:
+
+  high_availability:
+
+    min_proxies: 2
+
+    failover:
+      enabled: true
+      strategy: priority
+
+    health_check:
+      enabled: true
+      interval: configurable
+
+proxy_discovery:
+
+  bootstrap:
+    method: dns
+    endpoint: proxy.internal.local
+
+  dynamic:
+    endpoint: /proxy/discovery
+
+  cache:
+    enabled: true
+
+  failover:
+    enabled: true
