@@ -27,6 +27,7 @@ Agent (Execução)
 # 🧩 Mapa Completo
 
 Platform
+
  ├── Infrastructure (Kafka, DB, APIs)
 
  ├── Orchestration (distribuição de tarefas)
@@ -37,6 +38,7 @@ Platform
 
 
 Agent
+
  ├── Task Engine
 
  ├── Execution Engine
@@ -49,6 +51,7 @@ Agent
 
 
 Task
+
  └── Contrato entre Platform e Agent
 
 ---
@@ -199,19 +202,19 @@ Toda execução deve:
 # 🔄 Fluxo de Execução
 
 Platform
-   ↓
+   ↓   
 Orchestration
-   ↓
+   ↓   
 Task (contrato)
-   ↓
+   ↓   
 Agent
-   ↓
+   ↓   
 Execution Engine
-   ↓
+   ↓   
 Module Adapter
-   ↓
+   ↓   
 Tool (nmap, httpx, etc.)
-   ↓
+   ↓   
 Resultado → Platform
 
 ---
