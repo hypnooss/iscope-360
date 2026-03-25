@@ -1,0 +1,34 @@
+security:
+  
+  description: governaça de segurança para tasks e comunicações
+
+  signing:
+    description: garantia de integridade e autenticidade de tasks
+    mechanism: HMAC-SHA256 | RSA-PSS | Ed25519
+    required_fields:
+      - task_id
+      - tenant_id
+      - payload (hashed)
+    verification:
+      agent: deve validar assinatura antes de enfileirar
+      platform: deve assinar toda task emitida
+
+  encryption:
+    in_transit:
+      protocol: TLS 1.3
+      requirement: mTLS para agentes críticos
+    at_rest:
+      agent: SQLite com encriptação (sqlcipher) opcional
+      platform: encriptação nativa do banco de dados
+
+  secrets_management:
+    agent:
+      - não armazenar segredos em texto claro
+      - usar OS Keystore ou variáveis de ambiente seguras
+    platform:
+      - usar HashiCorp Vault ou equivalente
+      - segredos rotativos para integração com nuvem
+
+  access_control:
+    model: RBAC
+    agent_identity: cada agente possui uma identidade única (UUID + Certificado)

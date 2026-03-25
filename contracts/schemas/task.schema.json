@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "iScope360 Task",
+  "type": "object",
+  "required": ["task_id", "tenant_id", "target", "type", "action", "payload"],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target": {
+      "type": "object",
+      "required": ["type", "id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["agent", "scan_worker"]
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "type": {
+      "type": "string",
+      "enum": ["compliance", "internal_scan", "external_scan"]
+    },
+    "action": {
+      "type": "string",
+      "enum": ["execute", "cancel", "status"]
+    },
+    "payload": {
+      "type": "object",
+      "required": ["module", "params"],
+      "properties": {
+        "module": {
+          "type": "string"
+        },
+        "params": {
+          "type": "object"
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "timeout": { "type": "integer", "minimum": 0 },
+            "cpu": { "type": "string", "enum": ["low", "medium", "high"] },
+            "memory": { "type": "integer", "minimum": 0 },
+            "rate": { "type": "string" }
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "properties": {
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "schedule": { "type": "string" },
+        "retry": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "security": {
+      "type": "object",
+      "properties": {
+        "signed": { "type": "boolean" },
+        "signature": { "type": "string" }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "created_by": { "type": "string" },
+        "source": { "type": "string", "enum": ["system", "user", "automation"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

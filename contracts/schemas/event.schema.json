@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "iScope360 Event",
+  "type": "object",
+  "required": ["metadata", "payload"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["event_id", "type", "timestamp", "tenant_id"],
+      "properties": {
+        "event_id": { "type": "string", "format": "uuid" },
+        "type": { 
+          "type": "string", 
+          "enum": [
+            "task.created", 
+            "task.dispatched", 
+            "task.started", 
+            "task.completed", 
+            "task.failed", 
+            "agent.heartbeat", 
+            "alert.generated"
+          ] 
+        },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "tenant_id": { "type": "string", "format": "uuid" },
+        "version": { "type": "string", "default": "1.0.0" }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "description": "Arbitrary data payload based on event type"
+    }
+  }
+}
