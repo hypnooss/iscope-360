@@ -28,16 +28,25 @@ Agent (Execução)
 
 Platform
  ├── Infrastructure (Kafka, DB, APIs)
+
  ├── Orchestration (distribuição de tarefas)
+
  ├── Templates (inteligência do produto)
+
  └── Processing (workers)
+
 
 Agent
  ├── Task Engine
+
  ├── Execution Engine
+
  ├── Modules (nmap, httpx, etc.)
+
  ├── Sandbox
+
  └── Local Storage
+
 
 Task
  └── Contrato entre Platform e Agent
