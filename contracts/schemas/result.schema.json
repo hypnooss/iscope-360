@@ -2,49 +2,118 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "iScope360 Result",
   "type": "object",
-  "required": ["metadata", "status", "execution"],
+  "additionalProperties": false,
+  "required": [
+    "metadata",
+    "status",
+    "execution"
+  ],
   "properties": {
     "metadata": {
       "type": "object",
-      "required": ["task_id", "agent_id", "module", "timestamp"],
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "correlation_id",
+        "agent_id",
+        "tenant_id",
+        "module",
+        "timestamp"
+      ],
       "properties": {
-        "task_id": { "type": "string", "format": "uuid" },
-        "agent_id": { "type": "string" },
-        "module": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "task_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "correlation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "agent_id": {
+          "type": "string"
+        },
+        "tenant_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "module": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
     "status": {
       "type": "string",
-      "enum": ["success", "failed", "partial"]
+      "enum": [
+        "success",
+        "failed",
+        "partial"
+      ]
     },
     "execution": {
       "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duration_ms",
+        "retries"
+      ],
       "properties": {
-        "duration_ms": { "type": "integer", "minimum": 0 },
-        "retries": { "type": "integer", "minimum": 0 },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0
+        },
         "resources": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
-            "cpu_avg": { "type": "number" },
-            "memory_peak_mb": { "type": "integer" }
+            "cpu_usage": {
+              "type": "number"
+            },
+            "memory_usage": {
+              "type": "number"
+            }
           }
         }
       }
     },
     "data": {
-      "type": "object",
-      "description": "Normalized output data from the module"
+      "type": "object"
     },
-    "errors": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["code", "message"],
-        "properties": {
-          "code": { "type": "integer" },
-          "message": { "type": "string" },
-          "details": { "type": "object" }
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "name",
+        "category",
+        "description",
+        "retriable"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "retriable": {
+          "type": "boolean"
+        },
+        "details": {
+          "type": "object"
         }
       }
     }
