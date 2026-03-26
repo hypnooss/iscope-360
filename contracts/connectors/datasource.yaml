@@ -1,0 +1,186 @@
+datasource:
+
+  version: 1.0
+
+  description: >
+    Modelo genérico de datasource do iScope.
+    Todo conector (cloud ou on-prem) deve seguir este contrato.
+    Define como uma fonte de dados é registrada, autenticada,
+    coletada e monitorada pela plataforma.
+
+  # -----------------------------------------------------------
+  # IDENTITY
+  # -----------------------------------------------------------
+  identity:
+
+    required:
+      - datasource_id       # uuid gerado pela plataforma
+      - tenant_id           # isolamento multi-tenant
+      - type                # ex: m365, google_workspace, aws, on_prem_agent
+      - name                # nome amigável definido pelo usuário
+      - version             # versão do conector utilizado
+      - status              # estado atual do datasource
+
+    status:
+      allowed:
+        - provisioning      # sendo configurado pela plataforma
+        - active            # coletando normalmente
+        - degraded          # coletando parcialmente / com erros
+        - inactive          # desabilitado pelo usuário
+        - error             # falha crítica, requer atenção
+
+  # -----------------------------------------------------------
+  # COLLECTION MODEL
+  # -----------------------------------------------------------
+  collection:
+
+    modes:
+      - pull                # platform/agent conecta e coleta ativamente
+      - push                # datasource envia dados para a plataforma
+
+    pull:
+
+      strategies:
+        - polling           # intervalo configurável (ex: 1 min)
+        - streaming         # conexão persistente (webhook, SSE, websocket)
+
+      rules:
+        - intervalo mínimo: 1 minuto
+        - intervalo máximo: 24 horas
+        - coleta deve ser idempotente
+        - coleta deve usar correlation_id
+        - falhas devem gerar evento de erro e retry com backoff
+
+    push:
+
+      rules:
+        - datasource deve autenticar na ingestão
+        - payload deve seguir schema definido pelo conector
+        - plataforma deve validar e normalizar antes de persistir
+
+  # -----------------------------------------------------------
+  # AUTHENTICATION
+  # -----------------------------------------------------------
+  authentication:
+
+    description: >
+      Credenciais são armazenadas no Credential Vault da plataforma.
+      O datasource referencia o ID da credencial — nunca armazena a
+      credencial diretamente.
+
+    credential_reference:
+      field: credential_id
+      source: credential-vault.yaml
+
+    supported_methods:
+      - oauth2_client_credentials
+      - oauth2_authorization_code
+      - api_key
+      - certificate
+      - username_password       # apenas para on-prem / legacy
+      - agent_identity          # autenticação via identidade do agent (mTLS)
+
+    rules:
+      - credenciais nunca devem ser embutidas no contrato
+      - credenciais devem ser referenciadas por credential_id
+      - renovação de tokens deve ser automática
+      - falhas de autenticação devem gerar alerta
+
+  # -----------------------------------------------------------
+  # PROVISIONING
+  # -----------------------------------------------------------
+  provisioning:
+
+    description: >
+      Processo de configuração automática do datasource pela plataforma.
+      O objetivo é minimizar a ação manual do usuário.
+
+    modes:
+      - auto      # plataforma configura tudo automaticamente
+      - manual    # usuário configura externamente; plataforma valida
+
+    auto_provisioning:
+
+      steps:
+        - authenticate_as_admin
+        - create_app_registration (se aplicável)
+        - assign_permissions
+        - generate_credentials
+        - store_in_vault
+        - validate_connectivity
+        - activate_datasource
+
+      rules:
+        - cada passo deve ser auditado
+        - falha em qualquer passo deve reverter o processo (rollback)
+        - status deve ser atualizado em cada etapa
+
+  # -----------------------------------------------------------
+  # DATA STREAMS
+  # -----------------------------------------------------------
+  data_streams:
+
+    description: >
+      Cada datasource pode expor múltiplos streams de dados.
+      Cada stream é coletado e armazenado independentemente.
+
+    stream:
+
+      required:
+        - stream_id
+        - name
+        - category          # ex: audit_log, metric, alert, inventory
+        - enabled
+        - collection_interval
+
+      categories:
+        - audit_log         # logs de auditoria e atividade
+        - security_alert    # alertas de segurança
+        - metric            # métricas de desempenho
+        - inventory         # inventário de recursos/ativos
+        - configuration     # configurações do sistema
+        - identity          # usuários, grupos, roles
+
+  # -----------------------------------------------------------
+  # NORMALIZATION
+  # -----------------------------------------------------------
+  normalization:
+
+    description: >
+      Dados brutos coletados devem ser normalizados antes de
+      serem persistidos no OpenSearch.
+
+    rules:
+      - todo evento normalizado deve conter: timestamp, tenant_id,
+        datasource_id, stream_id, source_type, raw_data (opcional)
+      - campos obrigatórios devem ser validados
+      - dados fora do schema devem ser rejeitados com erro
+
+  # -----------------------------------------------------------
+  # OBSERVABILITY
+  # -----------------------------------------------------------
+  observability:
+
+    metrics:
+      - events_collected_total
+      - events_failed_total
+      - last_collection_at
+      - collection_latency_ms
+      - auth_failures_total
+
+    rules:
+      - toda coleta deve atualizar last_collection_at
+      - falhas consecutivas devem escalar status para degraded/error
+      - métricas devem ser emitidas via Kafka (metrics.raw)
+
+  # -----------------------------------------------------------
+  # RULES
+  # -----------------------------------------------------------
+  rules:
+    - todo datasource deve ter tenant_id
+    - credenciais são sempre referenciadas, nunca armazenadas inline
+    - coleta deve ser idempotente
+    - falhas devem ser auditadas e gerar retry
+    - dados coletados devem ser normalizados antes de persistir
+    - datasource inativo não deve coletar dados
+    - status deve refletir o estado real da coleta

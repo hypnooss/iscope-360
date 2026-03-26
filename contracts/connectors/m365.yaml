@@ -1,0 +1,287 @@
+connector:
+
+  id: m365
+  version: 1.0
+  extends: datasource.yaml
+
+  description: >
+    Conector Microsoft 365 do iScope.
+    Responsável por provisionar automaticamente o acesso ao tenant M365 do cliente,
+    configurar o aplicativo Azure AD, criar o certificado, atribuir permissões
+    e iniciar a coleta contínua de logs e dados via Management Activity API e Graph API.
+
+  # -----------------------------------------------------------
+  # PROVISIONING AUTOMÁTICO
+  # -----------------------------------------------------------
+  provisioning:
+
+    mode: auto
+
+    input:
+      description: dados fornecidos pelo usuário no UI
+      required:
+        - tenant_id             # Tenant ID do Microsoft 365
+        - admin_credentials:    # credencial de admin global (usada APENAS no provisioning)
+            reference: credential-vault.yaml
+            type: username_password
+
+    steps:
+
+      - step: authenticate_as_admin
+        description: autenticar com as credenciais de admin fornecidas
+        method: oauth2_device_flow ou username_password
+        note: credencial usada apenas neste passo, não armazenada permanentemente
+
+      - step: create_app_registration
+        description: criar App Registration no Azure AD via Graph API
+        api: POST https://graph.microsoft.com/v1.0/applications
+        output:
+          - app_id
+          - object_id
+
+      - step: assign_api_permissions
+        description: atribuir permissões de API ao aplicativo
+        permissions:
+          management_activity_api:
+            - ActivityFeed.Read
+            - ActivityFeed.ReadDlp
+            - ServiceHealth.Read
+          graph_api:
+            - AuditLog.Read.All
+            - Directory.Read.All
+            - Reports.Read.All
+            - Mail.ReadBasic.All       # para message tracking (se disponível)
+        note: permissões de Application (não Delegated)
+
+      - step: grant_admin_consent
+        description: conceder admin consent para as permissões
+        api: POST /adminconsent
+
+      - step: generate_certificate
+        description: gerar certificado X.509 para autenticação do app
+        key_size: 2048
+        validity: 365 dias
+        storage:
+          private_key: credential-vault.yaml
+          public_cert: registrado no Azure AD App Registration
+
+      - step: create_service_principal
+        description: criar service principal associado ao app
+
+      - step: validate_connectivity
+        description: validar que o app consegue autenticar e acessar as APIs
+        tests:
+          - GET https://manage.office.com/api/v1.0/{tenant_id}/activity/feed/subscriptions/list
+          - GET https://graph.microsoft.com/v1.0/organization
+
+      - step: activate_datasource
+        description: registrar datasource como ativo e iniciar coleta
+
+    rollback:
+      on_failure: true
+      actions:
+        - revogar admin consent
+        - deletar app registration criado
+        - remover credenciais do vault
+        - marcar datasource como error
+
+  # -----------------------------------------------------------
+  # AUTENTICAÇÃO PÓS-PROVISIONING
+  # -----------------------------------------------------------
+  authentication:
+
+    method: certificate
+    credential_reference: credential-vault.yaml
+
+    token_flow:
+      type: client_credentials
+      endpoint: https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token
+
+    token_cache:
+      enabled: true
+      auto_refresh: true
+      refresh_before_expiry: 5 min
+
+  # -----------------------------------------------------------
+  # DATA STREAMS
+  # -----------------------------------------------------------
+  data_streams:
+
+    # ----------------------------------------------------------
+    - stream_id: m365_audit_azure_ad
+      name: Azure Active Directory Audit
+      api: Management Activity API
+      subscription: Audit.AzureActiveDirectory
+      category: audit_log
+      collection:
+        mode: pull
+        strategy: polling
+        interval: 1 min
+      data_includes:
+        - logins e sign-ins
+        - MFA challenges e resultados
+        - conditional access events
+        - criação/modificação de usuários e grupos
+        - alterações de roles e permissões
+        - registro de dispositivos
+
+    # ----------------------------------------------------------
+    - stream_id: m365_audit_exchange
+      name: Exchange Online Audit
+      api: Management Activity API
+      subscription: Audit.Exchange
+      category: audit_log
+      collection:
+        mode: pull
+        strategy: polling
+        interval: 1 min
+      data_includes:
+        - acesso a mailboxes
+        - criação e modificação de regras de email
+        - forwarding de emails
+        - permissões de mailbox
+        - criação/deleção de mailboxes
+
+    # ----------------------------------------------------------
+    - stream_id: m365_audit_sharepoint
+      name: SharePoint & OneDrive Audit
+      api: Management Activity API
+      subscription: Audit.SharePoint
+      category: audit_log
+      collection:
+        mode: pull
+        strategy: polling
+        interval: 1 min
+      data_includes:
+        - acesso a arquivos e pastas
+        - compartilhamentos externos
+        - download/upload de arquivos
+        - modificações de permissões de site
+
+    # ----------------------------------------------------------
+    - stream_id: m365_audit_general
+      name: General M365 Audit
+      api: Management Activity API
+      subscription: Audit.General
+      category: audit_log
+      collection:
+        mode: pull
+        strategy: polling
+        interval: 1 min
+      data_includes:
+        - atividades do Microsoft Teams
+        - atividades do Power Platform
+        - atividades do Forms e Planner
+        - atividades de administração geral
+
+    # ----------------------------------------------------------
+    - stream_id: m365_dlp
+      name: Data Loss Prevention Events
+      api: Management Activity API
+      subscription: DLP.All
+      category: security_alert
+      collection:
+        mode: pull
+        strategy: polling
+        interval: 1 min
+      data_includes:
+        - violações de política DLP
+        - dados sensíveis detectados
+
+    # ----------------------------------------------------------
+    - stream_id: m365_secure_score
+      name: Microsoft Secure Score
+      api: Graph API
+      endpoint: GET /security/secureScores
+      category: security_alert
+      collection:
+        mode: pull
+        strategy: polling
+        interval: 24h
+      data_includes:
+        - pontuação de segurança atual
+        - recomendações de melhoria
+
+    # ----------------------------------------------------------
+    - stream_id: m365_users_inventory
+      name: Users & Licenses Inventory
+      api: Graph API
+      endpoint: GET /users
+      category: inventory
+      collection:
+        mode: pull
+        strategy: polling
+        interval: 1h
+      data_includes:
+        - lista de usuários
+        - licenças atribuídas
+        - MFA status por usuário
+        - último login
+
+    # ----------------------------------------------------------
+    - stream_id: m365_conditional_access
+      name: Conditional Access Policies
+      api: Graph API
+      endpoint: GET /identity/conditionalAccess/policies
+      category: configuration
+      collection:
+        mode: pull
+        strategy: polling
+        interval: 6h
+      data_includes:
+        - políticas de conditional access
+        - named locations
+        - estado (enabled/disabled/reportOnly)
+
+  # -----------------------------------------------------------
+  # POWERSHELL (casos especiais)
+  # -----------------------------------------------------------
+  powershell:
+
+    description: >
+      Alguns dados ainda não estão disponíveis via REST API.
+      Para esses casos, o iScope usa PowerShell via módulo do Agent
+      (autenticado via certificado gerado no provisioning).
+
+    use_cases:
+
+      - name: message_trace
+        description: rastreamento detalhado de emails (últimas 10 dias)
+        module: Exchange Online PowerShell
+        command: Get-MessageTrace
+        schedule: 30 min
+        note: substituível por Graph API Beta em versões futuras
+
+    requirements:
+      - agent com capabilities: [powershell]
+      - certificado registrado no App Registration
+      - módulo ExchangeOnlineManagement instalado no agent
+
+  # -----------------------------------------------------------
+  # LICENÇAS REQUERIDAS
+  # -----------------------------------------------------------
+  license_requirements:
+
+    minimum:
+      - Microsoft 365 E3 (audit logs básicos, retenção 90 dias)
+
+    recommended:
+      - Microsoft 365 E5 (Advanced Audit, retenção 1 ano)
+      - Microsoft Defender for Office 365 (alertas avançados)
+
+    note: >
+      Unified Audit Log deve estar habilitado no tenant.
+      Sem E5, alguns eventos de Exchange e Mailbox Access não estão disponíveis.
+
+  # -----------------------------------------------------------
+  # RULES
+  # -----------------------------------------------------------
+  rules:
+    - credenciais de admin são usadas APENAS no provisioning e descartadas
+    - autenticação pós-provisioning usa APENAS certificado
+    - tenant_id deve ser validado antes de qualquer operação
+    - polling deve respeitar rate limits da Management Activity API
+    - dados devem ser normalizados antes de entrar no Kafka
+    - todos os streams de auditoria devem ser coletados com polling de 1 min
+    - falha em stream individual não deve parar outros streams
+    - revogação do datasource deve revogar o app registration no Azure AD
