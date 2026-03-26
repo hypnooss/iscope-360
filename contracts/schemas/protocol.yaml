@@ -1,6 +1,6 @@
 protocol:
 
-  version: 1.0
+  version: 1.1
 
   description: comunicação bidirecional entre Agent e Platform via streaming
 
@@ -30,8 +30,14 @@ protocol:
       - version
       - payload
 
-    optional_fields:
-      - via_proxy
+    routing:
+
+      origin_agent_id:
+        description: agente que originou a mensagem (especialmente em relay)
+
+      via_proxy:
+        description: proxy que encaminhou a mensagem
+        type: string
 
   message_types:
 
@@ -55,7 +61,7 @@ protocol:
     - task.completed
     - task.failed
 
-    # treaming / acesso remoto
+    # streaming / acesso remoto
     - stream.open
     - stream.data
     - stream.close
@@ -84,9 +90,16 @@ protocol:
 
   rules:
 
+    # gerais
     - toda mensagem deve seguir o envelope
     - toda mensagem deve ter correlation_id
     - toda mensagem deve ter version
     - type deve existir em message_types
     - payload deve respeitar o schema associado
     - mensagens devem ser idempotentes
+
+    # proxy relay
+    - mensagens originadas por agent via proxy devem incluir origin_agent_id
+    - proxy deve preencher via_proxy ao encaminhar mensagens
+    - proxy não deve alterar payload
+    - platform deve usar origin_agent_id como identidade real do agente

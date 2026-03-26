@@ -81,3 +81,11 @@ principles:
       - tenant_id deve estar presente em todas operações
       - dados não podem ser compartilhados entre tenants
       - storage deve respeitar isolamento lógico
+
+  proxy_is_transparent_relay:
+  description: proxy apenas encaminha mensagens, sem lógica de negócio
+
+  implications:
+    - proxy não executa decisões
+    - proxy não altera payload
+    - proxy apenas adiciona metadados de roteamento

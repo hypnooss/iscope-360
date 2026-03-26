@@ -1,6 +1,6 @@
 security:
 
-  version: 1.0
+  version: 1.1
 
   description: governança de segurança para tasks, agentes e comunicações
 
@@ -115,12 +115,29 @@ security:
       - todas ações devem ser auditadas
       - proxy não deve armazenar credenciais sensíveis permanentemente
 
+      # relay behavior
+      - proxy deve atuar apenas como relay (não interpretar mensagens)
+      - proxy não deve alterar payload de mensagens
+      - proxy deve preservar integridade da mensagem original
+
+      # identity preservation
+      - proxy deve encaminhar origin_agent_id corretamente
+      - proxy deve adicionar via_proxy em mensagens encaminhadas
+
+      # validation
+      - proxy deve validar identidade do agent antes de aceitar conexão
+      - proxy deve validar tenant_id das mensagens recebidas
+
   communication_security:
 
     rules:
       - todas mensagens devem conter correlation_id
       - todas mensagens devem ser autenticadas
       - payloads devem ser validados contra schema
+
+      # relay
+      - mensagens via proxy devem incluir origin_agent_id
+      - platform deve validar origem real do agente
 
   compliance:
 

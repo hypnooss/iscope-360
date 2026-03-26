@@ -2,7 +2,7 @@ event:
 
   description: eventos trafegados no sistema (Kafka)
 
-  version: 1.0
+  version: 1.1
 
   types:
 
@@ -36,10 +36,21 @@ event:
       - tenant_id
       - correlation_id
 
+      # proxy relay
+      - origin_agent_id
+      - via_proxy
+
     payload:
       type: object
 
   rules:
+
+    # gerais
     - todo evento deve ser versionado
     - eventos devem ser idempotentes
     - type deve existir em event.types
+
+    # proxy relay
+    - eventos gerados via proxy devem incluir origin_agent_id
+    - eventos encaminhados por proxy devem incluir via_proxy
+    - platform deve usar origin_agent_id como identidade real do agente

@@ -1,6 +1,6 @@
 result:
 
-  version: 1.0
+  version: 1.1
 
   description: resposta padrão do agent para a plataforma
 
@@ -13,6 +13,10 @@ result:
       tenant_id: uuid
       module: string
       timestamp: datetime
+
+      # proxy relay
+      origin_agent_id: string
+      via_proxy: string
 
     status:
       allowed:
@@ -49,9 +53,15 @@ result:
 
   rules:
 
+    # gerais
     - todo resultado deve seguir esse schema
     - metadata.correlation_id é obrigatório
     - status deve refletir corretamente a execução
     - data deve ser normalizado
     - erros devem seguir errors.yaml
     - result deve ser compatível com protocol.message_contracts
+
+    # proxy relay
+    - quando executado via proxy, origin_agent_id deve representar o agente real
+    - via_proxy deve indicar o proxy intermediário
+    - platform deve usar origin_agent_id como identidade principal quando presente

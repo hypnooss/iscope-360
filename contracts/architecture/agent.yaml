@@ -1,6 +1,6 @@
 agent:
 
-  version: 1.0
+  version: 1.1
 
   architecture:
     type: modular
@@ -59,6 +59,7 @@ agent:
       - reconectar automaticamente
       - gerenciar estado de conexão
       - detectar falhas
+      - suportar modo relay via proxy
 
     states:
       - connecting
@@ -130,6 +131,7 @@ agent:
       - task_history
       - update_state
       - config_state
+      - proxy_cache
 
     behaviors:
       crash_recovery: enabled
@@ -315,7 +317,48 @@ agent:
     responsibilities:
       - executar tasks em redes internas
       - acessar APIs internas
-      - atuar como bridge para acesso remoto
+      - atuar como relay de comunicação
+
+    discovery:
+
+      primary: dns
+
+      dns:
+
+        record_name: iscope-proxy
+        resolution_strategy:
+          - system_dns_suffix
+          - configured_domain
+          - plain_hostname
+
+        refresh_interval: 60s
+
+      fallback:
+
+        last_known: true
+        static_list: optional
+
+    connection:
+
+      mode:
+        - direct
+        - relay
+
+      relay:
+
+        retry_strategy: exponential_backoff
+
+        proxy_selection:
+
+          strategy:
+            - round_robin
+            - failover
+
+    persistence:
+
+      last_known_proxies:
+        storage: local_disk
+        format: json
 
     high_availability:
 
@@ -323,23 +366,8 @@ agent:
 
       failover:
         enabled: true
-        strategy: priority
+        strategy: round_robin
 
       health_check:
         enabled: true
         interval: configurable
-
-  proxy_discovery:
-
-    bootstrap:
-      method: dns
-      endpoint: proxy.internal.local
-
-    dynamic:
-      endpoint: /proxy/discovery
-
-    cache:
-      enabled: true
-
-    failover:
-      enabled: true
