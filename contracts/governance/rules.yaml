@@ -1,6 +1,6 @@
 rules:
 
-  version: 1.0
+  version: 1.1
 
   execution:
 
@@ -75,6 +75,20 @@ rules:
       references:
         - agent.yaml
         - platform.yaml
+
+    - id: SEC-004
+      name: proxy_must_not_modify_payload
+      description: proxy deve atuar como relay puro, sem alterar payload ou interpretar mensagens
+      applies_to:
+        - agent
+      conditions:
+        - role == proxy
+      enforcement:
+        type: runtime
+        level: error
+      references:
+        - security.yaml
+        - protocol.yaml
 
   architecture:
 

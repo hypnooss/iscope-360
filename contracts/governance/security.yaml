@@ -1,6 +1,6 @@
 security:
 
-  version: 1.1
+  version: 1.2
 
   description: governança de segurança para tasks, agentes e comunicações
 
@@ -110,23 +110,27 @@ security:
     description: regras de segurança para agentes com role proxy
 
     rules:
-      - proxy deve operar sob menor privilégio possível
-      - acesso a redes internas deve ser controlado
-      - todas ações devem ser auditadas
-      - proxy não deve armazenar credenciais sensíveis permanentemente
 
-      # relay behavior
-      - proxy deve atuar apenas como relay (não interpretar mensagens)
-      - proxy não deve alterar payload de mensagens
-      - proxy deve preservar integridade da mensagem original
+      least_privilege:
+        - proxy deve operar sob menor privilégio possível
+        - proxy não deve armazenar credenciais sensíveis permanentemente
+        - acesso a redes internas deve ser controlado
 
-      # identity preservation
-      - proxy deve encaminhar origin_agent_id corretamente
-      - proxy deve adicionar via_proxy em mensagens encaminhadas
+      audit:
+        - todas ações devem ser auditadas
 
-      # validation
-      - proxy deve validar identidade do agent antes de aceitar conexão
-      - proxy deve validar tenant_id das mensagens recebidas
+      relay_behavior:
+        - proxy deve atuar apenas como relay (não interpretar mensagens)
+        - proxy não deve alterar payload de mensagens
+        - proxy deve preservar integridade da mensagem original
+
+      identity:
+        - proxy deve encaminhar origin_agent_id corretamente
+        - proxy deve adicionar via_proxy em mensagens encaminhadas
+
+      validation:
+        - proxy deve validar identidade do agent antes de aceitar conexão
+        - proxy deve validar tenant_id das mensagens recebidas
 
   communication_security:
 

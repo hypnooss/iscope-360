@@ -2,8 +2,12 @@ event:
 
   description: eventos trafegados no sistema (Kafka)
 
-  version: 1.1
+  version: 1.2
 
+  # Proxy (eventos de estado - observabilidade)
+  # NOTA:
+  # proxy.promoted / proxy.demoted representam eventos de estado (Kafka)
+  # proxy.elected / proxy.revoked são comandos definidos no protocol.yaml
   types:
 
     # Task lifecycle
@@ -36,7 +40,7 @@ event:
       - tenant_id
       - correlation_id
 
-      # proxy relay
+      # proxy relay (condicional)
       - origin_agent_id
       - via_proxy
 
@@ -53,4 +57,6 @@ event:
     # proxy relay
     - eventos gerados via proxy devem incluir origin_agent_id
     - eventos encaminhados por proxy devem incluir via_proxy
+    - origin_agent_id é obrigatório quando via_proxy está presente
+    - via_proxy não deve existir para agentes com conexão direta
     - platform deve usar origin_agent_id como identidade real do agente

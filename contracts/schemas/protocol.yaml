@@ -1,6 +1,6 @@
 protocol:
 
-  version: 1.1
+  version: 1.2
 
   description: comunicação bidirecional entre Agent e Platform via streaming
 
@@ -39,6 +39,10 @@ protocol:
         description: proxy que encaminhou a mensagem
         type: string
 
+  # proxy control (comandos)
+  # NOTA:
+  # proxy.elected / proxy.revoked são comandos enviados pela plataforma (tempo real)
+  # os eventos correspondentes são emitidos via Kafka conforme definido em event.yaml
   message_types:
 
     # conexão
@@ -70,6 +74,10 @@ protocol:
     - proxy.discovery.request
     - proxy.discovery.response
     - proxy.health
+
+    # proxy control
+    - proxy.elected
+    - proxy.revoked
 
     # erro
     - error
@@ -103,3 +111,7 @@ protocol:
     - proxy deve preencher via_proxy ao encaminhar mensagens
     - proxy não deve alterar payload
     - platform deve usar origin_agent_id como identidade real do agente
+
+    # proxy control
+    - proxy.elected deve configurar agent para role=proxy
+    - proxy.revoked deve remover role=proxy do agent
