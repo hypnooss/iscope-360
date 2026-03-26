@@ -2,9 +2,22 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "iScope360 Task",
   "type": "object",
-  "required": ["task_id", "tenant_id", "target", "type", "action", "payload"],
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "correlation_id",
+    "tenant_id",
+    "target",
+    "type",
+    "action",
+    "payload"
+  ],
   "properties": {
     "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlation_id": {
       "type": "string",
       "format": "uuid"
     },
@@ -14,11 +27,18 @@
     },
     "target": {
       "type": "object",
-      "required": ["type", "id"],
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["agent", "scan_worker"]
+          "enum": [
+            "agent",
+            "scan_worker"
+          ]
         },
         "id": {
           "type": "string"
@@ -27,54 +47,159 @@
     },
     "type": {
       "type": "string",
-      "enum": ["compliance", "internal_scan", "external_scan"]
+      "enum": [
+        "compliance",
+        "internal_scan",
+        "external_scan"
+      ]
     },
     "action": {
       "type": "string",
-      "enum": ["execute", "cancel", "status"]
+      "enum": [
+        "execute"
+      ]
     },
     "payload": {
       "type": "object",
-      "required": ["module", "params"],
+      "additionalProperties": false,
+      "required": [
+        "module",
+        "params"
+      ],
       "properties": {
         "module": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "nmap",
+            "nuclei",
+            "ssh_check",
+            "m365_audit"
+          ]
         },
         "params": {
           "type": "object"
         },
         "limits": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
-            "timeout": { "type": "integer", "minimum": 0 },
-            "cpu": { "type": "string", "enum": ["low", "medium", "high"] },
-            "memory": { "type": "integer", "minimum": 0 },
-            "rate": { "type": "string" }
+            "timeout": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cpu": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "rate": {
+              "type": "string",
+              "enum": [
+                "safe",
+                "aggressive"
+              ]
+            }
           }
         }
       }
     },
     "execution": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
-        "schedule": { "type": "string" },
-        "retry": { "type": "integer", "minimum": 0 }
+        "priority": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "schedule": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "immediate",
+                "cron"
+              ]
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        "retry": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "execution_constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requires_role": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "proxy",
+              "worker"
+            ]
+          }
+        },
+        "network_zone": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "internal",
+              "external"
+            ]
+          }
+        }
       }
     },
     "security": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "signed": { "type": "boolean" },
-        "signature": { "type": "string" }
+        "signed": {
+          "type": "boolean"
+        },
+        "signature": {
+          "type": "string"
+        }
       }
     },
     "metadata": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "created_by": { "type": "string" },
-        "source": { "type": "string", "enum": ["system", "user", "automation"] },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "created_by": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "system",
+            "user",
+            "automation"
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     }
   }

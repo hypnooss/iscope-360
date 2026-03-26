@@ -2,33 +2,66 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "iScope360 Event",
   "type": "object",
-  "required": ["metadata", "payload"],
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "metadata",
+    "payload"
+  ],
   "properties": {
+    "version": {
+      "type": "string",
+      "default": "1.0"
+    },
     "metadata": {
       "type": "object",
-      "required": ["event_id", "type", "timestamp", "tenant_id"],
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "timestamp",
+        "tenant_id",
+        "correlation_id"
+      ],
       "properties": {
-        "event_id": { "type": "string", "format": "uuid" },
-        "type": { 
-          "type": "string", 
-          "enum": [
-            "task.created", 
-            "task.dispatched", 
-            "task.started", 
-            "task.completed", 
-            "task.failed", 
-            "agent.heartbeat", 
-            "alert.generated"
-          ] 
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
         },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "tenant_id": { "type": "string", "format": "uuid" },
-        "version": { "type": "string", "default": "1.0.0" }
+        "type": {
+          "type": "string",
+          "enum": [
+            "task.created",
+            "task.dispatched",
+            "task.started",
+            "task.completed",
+            "task.failed",
+            "agent.heartbeat",
+            "agent.connected",
+            "agent.disconnected",
+            "agent.status",
+            "alert.generated",
+            "proxy.promoted",
+            "proxy.demoted",
+            "proxy.unavailable"
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "tenant_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "correlation_id": {
+          "type": "string",
+          "format": "uuid"
+        }
       }
     },
     "payload": {
-      "type": "object",
-      "description": "Arbitrary data payload based on event type"
+      "type": "object"
     }
   }
 }

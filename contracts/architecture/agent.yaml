@@ -1,4 +1,7 @@
 agent:
+
+  version: 1.0
+
   architecture:
     type: modular
     execution_model: controlled_execution_runtime
@@ -42,16 +45,6 @@ agent:
         - controlar concorrência
         - garantir ordem de execução
 
-    transport_layer:
-      responsibilities:
-        - envio de dados (logs, métricas, resultados)
-        - retry automático
-        - buffer local (offline mode)
-        - compressão
-      protocols:
-        - HTTPS
-        - gRPC (futuro)
-
     identity:
       responsibilities:
         - autenticação com backend
@@ -59,6 +52,65 @@ agent:
       methods:
         - mTLS
         - token rotativo
+
+  connection_manager:
+    responsibilities:
+      - manter conexão persistente
+      - reconectar automaticamente
+      - gerenciar estado de conexão
+      - detectar falhas
+
+    states:
+      - connecting
+      - connected
+      - disconnected
+      - reconnecting
+
+  communication:
+
+    mode:
+      primary: streaming
+      fallback: polling
+
+    streaming:
+      enabled: true
+      technologies:
+        - websocket
+        - grpc_stream
+
+      responsibilities:
+        - receber tasks em tempo real
+        - enviar resultados
+        - enviar eventos
+        - suportar remote access
+
+      connection:
+        lifecycle:
+          - connect
+          - authenticate
+          - maintain
+          - reconnect
+
+        requirements:
+          - keepalive obrigatório
+          - reconexão automática
+          - tolerância a falhas
+
+    fallback:
+      polling:
+        interval: configurable
+        use_cases:
+          - fallback em falha de conexão
+          - ambientes restritivos
+
+    heartbeat:
+      required: true
+      interval: configurable
+      payload:
+        - cpu_load
+        - memory_usage
+        - active_tasks_count
+        - disk_space
 
   local_storage:
 
@@ -73,86 +125,25 @@ agent:
       - buffer offline
 
     data_models:
-      agent_state:
-      tasks:
-      task_history:
-      update_state:
-      config_state:
+      - agent_state
+      - tasks
+      - task_history
+      - update_state
+      - config_state
 
     behaviors:
-      crash_recovery:
-      retry_logic:
-      offline_mode:
-      retention:
+      crash_recovery: enabled
+      retry_logic: enabled
+      offline_mode: enabled
+      retention: configurable
 
   telemetry:
 
     opentelemetry_collector:
       mode: embedded
-
-  connection_manager:
-
-  responsibilities:
-    - manter conexão persistente
-    - reconectar automaticamente
-    - gerenciar estado de conexão
-    - detectar falhas
-
-  states:
-    - connecting
-    - connected
-    - disconnected
-    - reconnecting
-
-  communication:
-
-  mode:
-    primary: streaming
-    fallback: polling
-
-  streaming:
-
-    enabled: true
-    technologies:
-      - websocket
-      - grpc_stream
-
-    responsibilities:
-      - receber tasks em tempo real
-      - enviar resultados
-      - enviar eventos
-      - suportar remote access
-
-    connection:
-
-      lifecycle:
-        - connect
-        - authenticate
-        - maintain
-        - reconnect
-
-      requirements:
-        - keepalive obrigatório
-        - reconexão automática
-        - tolerância a falhas
-
-  fallback:
-
-    polling:
-      interval: configurable
-      use_cases:
-        - fallback em falha de conexão
-        - ambientes restritivos
-
-  heartbeat:
-
-    required: true
-    purpose:
-      - health check
-      - métricas
-      - presença do agent
-
-    interval: configurable
+      responsibilities:
+        - coleta de logs
+        - coleta de métricas
 
   execution:
 
@@ -190,26 +181,21 @@ agent:
     sandbox:
       strategies:
         - subprocess_controlled
-        - cgroups (linux)
-        - job_objects (windows)
-        - container (futuro)
+        - cgroups
+        - job_objects
+        - container
 
     execution_limits:
       timeout: required
       cpu_limit: configurable
       memory_limit: configurable
+
       concurrency_control:
         global_limit: configurable
         per_module_limit: configurable
 
-    output_schema:
-      standard:
-        - module
-        - target
-        - status
-        - result
-        - error
-        - timestamp
+    output_contract:
+      reference: result.yaml
 
   compliance_module:
     responsibilities:
@@ -234,6 +220,7 @@ agent:
 
     azure_ad:
       auth_method: certificate_based
+
       capabilities:
         - microsoft_graph
         - exchange_online_powershell
@@ -241,7 +228,8 @@ agent:
 
       certificate_management:
         storage:
-          - OS_keystore
+          - os_keystore
+
         requirements:
           - private_key_protected
           - encryption_at_rest
@@ -285,7 +273,13 @@ agent:
   observability:
 
     task_logging:
+      enabled: true
+
     health_monitoring:
+      metrics:
+        - cpu_load
+        - memory_usage
+        - active_tasks_count
 
   security:
 
@@ -306,40 +300,46 @@ agent:
       responsibilities:
         - adicionar novos módulos
         - adicionar adapters
-roles:
 
-  available:
-    - worker
-    - proxy
+  roles:
 
-  assignment:
-    controlled_by: platform
+    available:
+      - worker
+      - proxy
 
-proxy:
+    assignment:
+      controlled_by: platform
 
-  high_availability:
+  proxy:
 
-    min_proxies: 2
+    responsibilities:
+      - executar tasks em redes internas
+      - acessar APIs internas
+      - atuar como bridge para acesso remoto
+
+    high_availability:
+
+      min_proxies: 2
+
+      failover:
+        enabled: true
+        strategy: priority
+
+      health_check:
+        enabled: true
+        interval: configurable
+
+  proxy_discovery:
+
+    bootstrap:
+      method: dns
+      endpoint: proxy.internal.local
+
+    dynamic:
+      endpoint: /proxy/discovery
+
+    cache:
+      enabled: true
 
     failover:
       enabled: true
-      strategy: priority
-
-    health_check:
-      enabled: true
-      interval: configurable
-
-proxy_discovery:
-
-  bootstrap:
-    method: dns
-    endpoint: proxy.internal.local
-
-  dynamic:
-    endpoint: /proxy/discovery
-
-  cache:
-    enabled: true
-
-  failover:
-    enabled: true

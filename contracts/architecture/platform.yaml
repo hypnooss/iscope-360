@@ -1,4 +1,7 @@
 platform:
+
+  version: 1.0
+
   architecture:
     style: event-driven
     multi_tenant: true
@@ -127,15 +130,59 @@ platform:
     metrics: TimescaleDB
     tracing: OpenTelemetry (futuro)
 
-agent_management:
+  agent_management:
 
-  roles:
-    - proxy
-    - worker
-
-  proxy_management:
+    roles:
+      - proxy
+      - worker
 
     responsibilities:
-      - manter lista de proxies ativos
-      - monitorar health
-      - priorizar proxies
+      - registro de agents
+      - controle de roles
+      - gestão de conectividade
+
+    proxy_management:
+
+      responsibilities:
+        - manter lista de proxies ativos
+        - monitorar health dos proxies
+        - priorizar proxies para execução de tasks
+        - suportar ambientes com múltiplos proxies
+
+      high_availability:
+
+        min_proxies: 2
+
+        selection_strategy:
+          - priority
+          - health_based
+
+      health_check:
+
+        sources:
+          - agent.heartbeat
+          - connection_status
+
+        metrics:
+          - cpu_load
+          - memory_usage
+          - active_tasks_count
+
+      failover:
+
+        automatic: true
+
+        conditions:
+          - proxy_unreachable
+          - proxy_unhealthy
+
+        behavior:
+          - selecionar próximo proxy disponível
+          - reencaminhar novas tasks
+          - não interromper tasks já em execução
+
+      discovery:
+
+        responsibilities:
+          - fornecer lista de proxies disponíveis
+          - atualizar prioridades dinamicamente
