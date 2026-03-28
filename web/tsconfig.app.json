@@ -3,6 +3,10 @@
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
+    "types": [
+      "react",
+      "react-dom"
+    ],
     "lib": [
       "ES2020",
       "DOM",
