@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/url"
 	"sync"
+	"time"
 )
 
 // WSSClient gerencia a conexão persistente com a plataforma.
@@ -17,11 +18,12 @@ type WSSClient struct {
 	agentID     string
 	token       string
 	interrupt   chan struct{}
-	TaskChannel chan interface{} // Task payload
+	TaskChannel chan interface{}
 }
 
 func NewClient(addr string, agentID string, token string) *WSSClient {
-	u := url.URL{Scheme: "wss", Host: addr, Path: "/ws/agent"}
+	// Usamos ws:// para testes locais sem SSL, wss:// em prod.
+	u := url.URL{Scheme: "ws", Host: addr, Path: "/ws/agent"}
 	return &WSSClient{
 		url:         u,
 		agentID:     agentID,
@@ -31,11 +33,10 @@ func NewClient(addr string, agentID string, token string) *WSSClient {
 	}
 }
 
-// Connect inicia a conexão WSS com a plataforma (outbound-only).
-func (c *WSSClient) Connect() error {
+// Connect inicia a conexão WSS e realiza o Handshake v1.4.
+func (c *WSSClient) Connect(version string, capabilities []string) error {
 	log.Printf("Connecting to %s...", c.url.String())
 
-	// TODO: Configurar TLS mTLS aqui.
 	conn, _, err := websocket.DefaultDialer.Dial(c.url.String(), nil)
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
@@ -45,46 +46,83 @@ func (c *WSSClient) Connect() error {
 	c.conn = conn
 	c.mu.Unlock()
 
-	// Handshake / Auth
-	authMsg := map[string]string{
-		"type":     "auth",
-		"agent_id": c.agentID,
-		"token":    c.token,
+	// 1. Envia Handshake de Presença
+	handshake := map[string]interface{}{
+		"type":         "handshake",
+		"agent_id":     c.agentID,
+		"version":      version,
+		"capabilities": capabilities,
+		"hostname":     "agent-local",
 	}
-	err = c.conn.WriteJSON(authMsg)
+	
+	err = c.conn.WriteJSON(handshake)
 	if err != nil {
-		return fmt.Errorf("auth: %w", err)
+		return fmt.Errorf("handshake: %w", err)
 	}
 
+	// 2. Inicia Corrotina de Escuta e Heartbeat
 	go c.listenLoop()
+	go c.heartbeatLoop()
+	
 	return nil
 }
 
-// listenLoop escuta mensagens vindas da plataforma (PUSH model).
+// listenLoop escuta mensagens vindas da plataforma.
 func (c *WSSClient) listenLoop() {
 	defer c.conn.Close()
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
-			log.Printf("Read error: %v", err)
+			log.Printf("Connection closed: %v", err)
 			close(c.TaskChannel)
 			return
 		}
 
-		log.Printf("Received message: %s", message)
-		
-		var task interface{}
-		err = json.Unmarshal(message, &task)
+		var msg map[string]interface{}
+		err = json.Unmarshal(message, &msg)
 		if err != nil {
 			log.Printf("Unmarshal error: %v", err)
 			continue
 		}
 
-		c.TaskChannel <- task
+		// Filtra heartbeats acks e roteia tasks
+		if msg["type"] == "heartbeat_ack" {
+			continue
+		}
+
+		c.TaskChannel <- msg
 	}
 }
 
-// SendResult envia o resultado da execução de volta pelo mesmo túnel WSS.
+// heartbeatLoop envia um sinal de vida a cada 30 segundos.
+func (c *WSSClient) heartbeatLoop() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			c.mu.Lock()
+			if c.conn == nil {
+				c.mu.Unlock()
+				return
+			}
+			err := c.conn.WriteJSON(map[string]interface{}{
+				"type": "heartbeat",
+				"timestamp": time.Now().Format(time.RFC3339),
+			})
+			c.mu.Unlock()
+			if err != nil {
+				log.Printf("Heartbeat failed: %v", err)
+				return
+			}
+		case <-c.interrupt:
+			return
+		}
+	}
+}
+
+// SendResult envia dados de volta para a plataforma.
 func (c *WSSClient) SendResult(result interface{}) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()

@@ -3,7 +3,7 @@ module:
   identity:
     name: external_domains_compliance
     version: "1.4.0"
-    min_agent_version: "2.0.0"
+    min_agent_version: "1.0.0"
 
   execution_requirements:
     mode: pool

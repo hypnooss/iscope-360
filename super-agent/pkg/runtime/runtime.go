@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"time"
 	"github.com/iscope360/agent/pkg/context"
 )
 
@@ -12,7 +13,7 @@ const (
 	StatusSkipped = "skipped"
 )
 
-// Step represera um passo do flow no module.yaml
+// Step representa um passo do flow no module.yaml
 type Step struct {
 	ID         string
 	Capability string
@@ -28,8 +29,16 @@ type DataRef struct {
 	Required  bool
 }
 
-// CapabilityFunc é a assinatura para a execução de uma capability real.
-type CapabilityFunc func(ctx *context.Context, params map[string]interface{}) (interface{}, error)
+// StepResult contém os detalhes da execução de um step individual.
+type StepResult struct {
+	ID         string
+	Status     string
+	DurationMS int64
+	Error      string
+}
+
+// CapabilityFunc agora retorna um mapa de resultados para suportar múltiplos produces.
+type CapabilityFunc func(ctx *context.Context, params map[string]interface{}) (map[string]interface{}, error)
 
 // Engine é o motor de execução baseado em contrato.
 type Engine struct {
@@ -47,9 +56,12 @@ func (e *Engine) RegisterCapability(name string, fn CapabilityFunc) {
 	e.registry[name] = fn
 }
 
-// ExecuteModule interpreta o flow do módulo e executa os steps.
-func (e *Engine) ExecuteModule(ctx *context.Context, flow []Step) error {
+// ExecuteModule interpreta o flow do módulo e executa os steps, retornando o log de execução.
+func (e *Engine) ExecuteModule(ctx *context.Context, flow []Step) ([]StepResult, error) {
+	var executionLog []StepResult
+
 	for _, step := range flow {
+		start := time.Now()
 		fmt.Printf("Executing step: %s (Capability: %s)\n", step.ID, step.Capability)
 
 		// 1. Resolve inputs from context (Consumes)
@@ -57,7 +69,14 @@ func (e *Engine) ExecuteModule(ctx *context.Context, flow []Step) error {
 		for _, input := range step.Consumes {
 			val, err := ctx.Get(input.Name)
 			if err != nil && input.Required {
-				return fmt.Errorf("step %s: missing required input %s: %w", step.ID, input.Name, err)
+				errStr := fmt.Sprintf("missing required input %s", input.Name)
+				executionLog = append(executionLog, StepResult{
+					ID:         step.ID,
+					Status:     StatusFailed,
+					DurationMS: time.Since(start).Milliseconds(),
+					Error:      errStr,
+				})
+				return executionLog, fmt.Errorf("step %s: %s", step.ID, errStr)
 			}
 			params[input.Name] = val
 		}
@@ -65,30 +84,60 @@ func (e *Engine) ExecuteModule(ctx *context.Context, flow []Step) error {
 		// 2. Fetch tool/capability from registry
 		fn, ok := e.registry[step.Capability]
 		if !ok {
-			return fmt.Errorf("step %s: capability %s not found in registry", step.ID, step.Capability)
+			errStr := fmt.Sprintf("capability %s not found", step.Capability)
+			executionLog = append(executionLog, StepResult{
+				ID:         step.ID,
+				Status:     StatusFailed,
+				DurationMS: time.Since(start).Milliseconds(),
+				Error:      errStr,
+			})
+			return executionLog, fmt.Errorf("step %s: %s", step.ID, errStr)
 		}
 
 		// 3. RUN
-		output, err := fn(ctx, params)
+		outputMap, err := fn(ctx, params)
+		duration := time.Since(start).Milliseconds()
+
 		if err != nil {
 			fmt.Printf("Step %s failed: %v\n", step.ID, err)
+			
+			executionLog = append(executionLog, StepResult{
+				ID:         step.ID,
+				Status:     StatusFailed,
+				DurationMS: duration,
+				Error:      err.Error(),
+			})
+
 			if step.OnFailure == "abort" {
-				return fmt.Errorf("step %s: aborted due to failure: %w", step.ID, err)
+				return executionLog, fmt.Errorf("step %s: aborted: %w", step.ID, err)
 			}
-			// continue
 			continue
 		}
 
-		// 4. Store output in context (Produces)
-		// Assume-se que o output mapeia para o primeiro produces da lista para simplificar. 
-		// Em um modelo real, o output poderia ser um map.
-		if len(step.Produces) > 0 {
-			err = ctx.Set(step.Produces[0].Name, output)
-			if err != nil {
-				return fmt.Errorf("step %s: failed to store output %s: %w", step.ID, step.Produces[0].Name, err)
+		// 4. Store ALL outputs in context (Multiple Produces)
+		for _, produce := range step.Produces {
+			if val, exists := outputMap[produce.Name]; exists {
+				err = ctx.Set(produce.Name, val)
+				if err != nil {
+					// Erro de quota/memória ao salvar resultado
+					executionLog = append(executionLog, StepResult{
+						ID:         step.ID,
+						Status:     StatusFailed,
+						DurationMS: duration,
+						Error:      fmt.Sprintf("context store error: %v", err),
+					})
+					return executionLog, err
+				}
 			}
 		}
+
+		// Success
+		executionLog = append(executionLog, StepResult{
+			ID:         step.ID,
+			Status:     StatusSuccess,
+			DurationMS: duration,
+		})
 	}
 
-	return nil
+	return executionLog, nil
 }
