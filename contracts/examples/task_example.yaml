@@ -1,0 +1,36 @@
+# Exemplo de Task para Módulo de Domínios Externos
+task_id: "550e8400-e29b-41d4-a716-446655440000"
+correlation_id: "7d9b7396-1c70-4d94-96d5-188b64e5251a"
+tenant_id: "8c3b1234-5678-9012-abcd-ef0123456789"
+
+type: external_domains_compliance
+action: execute
+
+payload:
+  module: "domain_analyzer_composite"
+  params:
+    target_domain: "iscope360.com"
+    include_partners: true
+    partners: ["google.com", "microsoft.com"]
+    tools: ["subfinder", "httpx", "dns_analyzer", "whois_analyzer"]
+    api_keys_refs: ["shodan_apiKey_v1", "securitytrails_apiKey_v1"]
+  
+  limits:
+    timeout: 300
+    cpu: medium
+    rate: safe
+
+execution_constraints:
+  allowed_execution:
+    ownership: ["platform"]
+  requires_role: ["worker"]
+  network_zone: ["external"]
+
+security:
+  signed: true
+  signature: "dGVzdC1zaWduYXR1cmUtZWR5NTUxOQ=="
+
+metadata:
+  created_by: "system_scheduler"
+  source: "automation"
+  timestamp: "2026-03-27T19:20:00Z"

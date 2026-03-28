@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DNS Record Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": { "type": "string", "default": "1.0" },
+    "ns": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "mx": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "host": { "type": "string" },
+          "priority": { "type": "integer" }
+        }
+      }
+    },
+    "spf": {
+      "type": "object",
+      "properties": {
+        "raw": { "type": "string" },
+        "includes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ip4": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "all": { "type": "string", "enum": ["-all", "~all", "?all", "+all"] }
+      }
+    },
+    "dkim_selectors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "selector": { "type": "string" },
+          "key_hash": { "type": "string" },
+          "key_length": { "type": "integer" }
+        }
+      }
+    },
+    "dmarc": {
+      "type": "object",
+      "properties": {
+        "raw": { "type": "string" },
+        "policy": { "type": "string", "enum": ["none", "quarantine", "reject"] },
+        "rua": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ruf": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "dnssec": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "status": { "type": "string" },
+        "algorithm": { "type": "string" }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "resolver": { "type": "string" },
+        "method": { "type": "string", "enum": ["recursive", "authoritative"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

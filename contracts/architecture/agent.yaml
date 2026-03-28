@@ -1,6 +1,6 @@
 agent:
-
-  version: 1.1
+  version: 1.2
+  ownership: platform | workspace  # platform: infra do iScope360, workspace: infra do cliente
 
   architecture:
     type: modular
@@ -173,12 +173,17 @@ agent:
         - nmap
         - masscan
         - amass
+        - subfinder
         - httpx
         - nuclei
         - powershell
         - ssh
         - bloodhound
         - pingcastle
+        - dns_analyzer
+        - whois_analyzer
+        - dmarc_analyzer
+        - compliance_engine
 
     sandbox:
       strategies:
@@ -243,6 +248,15 @@ agent:
     supported_os:
       - linux
       - windows
+    network:
+      - dns.resolve
+      - dns.dnssec_validate
+      - dns.full_recursion
+      - http.probe
+      - whois.lookup
+    osint:
+      - osint.passive_dns
+      - osint.subdomain_enum
 
   update_system:
 

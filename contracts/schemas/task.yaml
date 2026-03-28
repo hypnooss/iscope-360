@@ -12,15 +12,20 @@ task:
       type: agent | scan_worker
       id: agent_id
 
-    type: compliance | internal_scan | external_scan
+    type: compliance | internal_scan | external_scan | external_domains_compliance
 
     action: execute
 
     payload:
 
-      module: nmap | nuclei | ssh_check | m365_audit
+      module: string # ex: domain_analyzer_composite, compliance_engine, etc.
 
-      params: object
+      params:
+        target_domain: string
+        include_partners: boolean
+        partners: array
+        tools: array
+        api_keys_refs: array
 
       limits:
         timeout: number
@@ -39,11 +44,18 @@ task:
 
     execution_constraints:
 
+      allowed_execution:
+        ownership:
+          - platform
+          - workspace
+
       requires_role:
         - proxy
+        - worker
 
       network_zone:
         - internal
+        - external
 
     security:
 

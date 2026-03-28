@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Domain Inventory Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": { "type": "string", "default": "1.0" },
+    "main_domain": { "type": "string" },
+    "subdomains": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "hostname": { "type": "string" },
+          "ip_addresses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "oneOf": [
+                { "format": "ipv4" },
+                { "format": "ipv6" }
+              ]
+            }
+          },
+          "status": { "type": "string", "enum": ["active", "inactive", "uncertain"] },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "port": { "type": "integer" },
+                "protocol": { "type": "string", "enum": ["tcp", "udp", "icmp"] }
+              }
+            }
+          },
+          "dns": { "$ref": "dns_record.schema.json" }
+        },
+        "required": ["hostname"]
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "resolves_to",
+              "mx_points_to",
+              "spf_includes",
+              "subdomain_of",
+              "alias_of",
+              "ns_authority_for"
+            ]
+          }
+        }
+      }
+    },
+    "owner": {
+      "type": "object",
+      "properties": {
+        "registrar": { "type": "string" },
+        "iana_id": { "type": "string" },
+        "creation_date": { "type": "string", "format": "date-time" },
+        "expiration_date": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "required": ["main_domain", "subdomains"]
+}

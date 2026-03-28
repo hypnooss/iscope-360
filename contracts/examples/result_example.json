@@ -1,0 +1,67 @@
+{
+  "task_id": "550e8400-e29b-41d4-a716-446655440000",
+  "correlation_id": "7d9b7396-1c70-4d94-96d5-188b64e5251a",
+  "agent_id": "agent-platform-prod-01",
+  "tenant_id": "8c3b1234-5678-9012-abcd-ef0123456789",
+  "status": "success",
+  "schema_version": "1.1",
+  "payload": {
+    "inventory": {
+      "schema_version": "1.0",
+      "main_domain": "iscope360.com",
+      "subdomains": [
+        {
+          "hostname": "api.iscope360.com",
+          "ip_addresses": ["1.1.1.1", "2606:4700:4700::1111"],
+          "status": "active",
+          "services": [
+            { "port": 443, "protocol": "tcp" }
+          ],
+          "dns": {
+            "ns": ["ns1.cloudflare.com", "ns2.cloudflare.com"],
+            "dmarc": {
+              "raw": "v=DMARC1; p=reject; rua=mailto:admin@iscope360.com,mailto:dmarc@partner.com",
+              "policy": "reject",
+              "rua": ["mailto:admin@iscope360.com", "mailto:dmarc@partner.com"]
+            },
+            "metadata": {
+              "resolver": "8.8.8.8",
+              "method": "recursive",
+              "timestamp": "2026-03-27T19:21:00Z"
+            }
+          }
+        }
+      ],
+      "relationships": [
+        { "from": "iscope360.com", "to": "api.iscope360.com", "type": "subdomain_of" },
+        { "from": "api.iscope360.com", "to": "1.1.1.1", "type": "resolves_to" }
+      ]
+    },
+    "findings": [
+      {
+        "status": "pass",
+        "severity": "low",
+        "category": "DNS",
+        "check": {
+          "id": "DNS-DMARC-POLICY",
+          "version": "1.0",
+          "benchmark": "CIS-DNS-1.2"
+        },
+        "description": "DMARC policy is correctly set to reject.",
+        "score": {
+          "value": 10,
+          "weight": 1,
+          "max_value": 10,
+          "normalized": 1.0
+        },
+        "evidence": [
+          {
+            "path": "$.payload.inventory.subdomains[0].dns.dmarc.policy",
+            "raw_source": "p=reject",
+            "context": { "tool": "dns_analyzer", "source": "8.8.8.8", "timestamp": "2026-03-27T19:21:00Z" }
+          }
+        ]
+      }
+    ]
+  }
+}

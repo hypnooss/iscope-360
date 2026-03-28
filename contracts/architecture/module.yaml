@@ -14,12 +14,16 @@ module:
     description: recursos necessários para execução
 
     allowed:
-      - network
-      - net_raw
+      - network.internal
+      - network.external
+      - dns.resolve
+      - dns.dnssec_validate
+      - http.probe
+      - whois.lookup
+      - osint.passive_dns
+      - osint.subdomain_enum
       - filesystem_read
       - filesystem_write
-      - powershell
-      - ssh
       - privileged
 
     rules:

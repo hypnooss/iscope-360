@@ -1,0 +1,46 @@
+module:
+  name: external_domains_compliance
+  version: 1.0
+  category: external_scan
+  description: módulo de descoberta e análise de compliance de domínios externos
+
+  flow:
+    - id: step_01_discovery
+      name: Subdomain Discovery
+      tools: [subfinder, amass]
+      capabilities: [osint.subdomain_enum, osint.passive_dns]
+    
+    - id: step_02_validation
+      name: Accessibility Validation
+      tools: [httpx, ping]
+      capabilities: [http.probe, dns.resolve]
+    
+    - id: step_03_dns_collection
+      name: DNS Record Collection
+      tools: [dns_analyzer]
+      capabilities: [dns.resolve, dns.dnssec_validate]
+    
+    - id: step_04_whois_collection
+      name: Registration Data Collection
+      tools: [whois_analyzer]
+      capabilities: [whois.lookup]
+    
+    - id: step_05_normalization
+      name: Data Normalization
+      description: transforma saídas brutas em inventory.schema.json e dns_record.schema.json
+    
+    - id: step_06_compliance_evaluation
+      name: Platform Compliance Evaluation
+      description: envio dos dados estruturados para a plataforma validar contra benchmarks
+
+  output_mapping:
+    inventory: domain_inventory.schema.json
+    dns: dns_record.schema.json
+    compliance: compliance_result.schema.json
+
+  security_constraints:
+    allowed_ownership: [platform]
+    isolation: sandbox_mandatory
+    secrets:
+      - required: [api_keys]
+        transport: task_payload_encrypted_ref

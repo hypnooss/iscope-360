@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Compliance Result Schema",
+  "type": "object",
+  "properties": {
+    "schema_version": { "type": "string", "default": "1.1" },
+    "status": { "type": "string", "enum": ["pass", "fail", "warning"] },
+    "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+    "category": { "type": "string" },
+    "check": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "version": { "type": "string" },
+        "benchmark": { "type": "string" }
+      },
+      "required": ["id", "benchmark"]
+    },
+    "description": { "type": "string" },
+    "impact_business": { "type": "string" },
+    "risk_technical": { "type": "string" },
+    "recommendation": { "type": "string" },
+    "score": {
+      "type": "object",
+      "properties": {
+        "value": { "type": "number" },
+        "weight": { "type": "number" },
+        "max_value": { "type": "number" },
+        "normalized": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" },
+          "raw_source": { "type": "string" },
+          "context": {
+            "type": "object",
+            "properties": {
+              "tool": { "type": "string" },
+              "source": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["status", "severity", "description", "evidence", "check"]
+}
