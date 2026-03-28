@@ -1,3 +1,7 @@
-export default function NetworkAnimation() {
-  return <h1>NetworkAnimation</h1>;
+import { HTMLAttributes } from "react";
+
+export function NetworkAnimation(
+  props: HTMLAttributes<HTMLDivElement>
+) {
+  return <div {...props}>...</div>;
 }
