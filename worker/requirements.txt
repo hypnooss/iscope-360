@@ -1,0 +1,4 @@
+aio_pika
+psycopg2-binary
+boto3
+pydantic
