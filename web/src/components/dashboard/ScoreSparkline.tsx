@@ -1,6 +1,10 @@
-import { AreaChart, Area, ResponsiveContainer, YAxis, XAxis } from 'recharts';
-import { ScoreHistoryPoint } from '@/hooks/useDashboardStats';
 import { useMemo } from 'react';
+import { AreaChart, Area, ResponsiveContainer, YAxis, XAxis } from 'recharts';
+
+export interface ScoreHistoryPoint {
+  date: string;
+  score: number;
+}
 
 interface ScoreSparklineProps {
   data: ScoreHistoryPoint[];
