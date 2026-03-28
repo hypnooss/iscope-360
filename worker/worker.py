@@ -1,48 +1,27 @@
 import asyncio
 import aio_pika
 import os
-
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://rabbitmq:5672")
-
-print("Worker booting...", flush=True)
-
-async def process_message(message: aio_pika.IncomingMessage):
-    async with message.process():
-        print("Received:", message.body.decode(), flush=True)
-
-import asyncio
-import aio_pika
-import os
 import json
 
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://rabbitmq:5672")
 
 print("Worker booting...", flush=True)
 
+from modules.loader import load_module
+from modules.executor import execute_module
+
 async def handle_task(payload):
-    print(f"⚙️ Processing task: {payload}", flush=True)
+    print(f"Processing task: {payload}", flush=True)
 
     task_type = payload.get("type")
 
-    if task_type == "external_domains_compliance":
-        target = payload.get("target")
+    try:
+        module = load_module(task_type)
+    except Exception as e:
+        print(f"Error loading module: {e}", flush=True)
+        return
 
-        print(f"Running domain analysis for: {target}", flush=True)
-
-        # MOCK inicial (depois vira execução real)
-        result = {
-            "inventory": {
-                "domain": target,
-                "status": "reachable"
-            },
-            "findings": []
-        }
-
-        print(f"Result: {result}", flush=True)
-
-    else:
-        print(f"❓ Unknown task type: {task_type}", flush=True)
-
+    execute_module(module, payload)
 
 async def process_message(message: aio_pika.IncomingMessage):
     async with message.process():
