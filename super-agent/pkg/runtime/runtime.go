@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"errors"
 	"fmt"
 	"github.com/iscope360/agent/pkg/context"
 )

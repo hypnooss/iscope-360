@@ -1,116 +1,46 @@
 orchestration:
 
-  version: 1.0
+  version: "1.4.0"
 
-  responsibilities:
-    - dividir workloads
-    - distribuir tasks entre agents
-    - respeitar execution_constraints
-    - selecionar agent adequado
-    - controlar execução paralela
-    - gerenciar retry
-    - controlar fluxo (backpressure)
-    - agregar resultados
+  strategies:
 
-  task_distribution:
+    execution_modes:
+      pool:
+        target: super_agents
+        logic: any capable agent
+      dedicated:
+        target: specific_agent
+        logic: target_agent_id mandatory
 
-    batching:
-      size: configurable
+    agent_selection:
+      rules:
+        - name: ORCH-003
+          description: "Validação mandatória de capabilities antes do despacho"
+          enforcement: platform_side
+          action: reject_task_if_agent_uncapable
 
-    scheduling:
+    task_distribution:
+      broker: rabbitmq
+      protocol: amqp
+      bridge: wss_gateway
 
-      strategy:
-        - round_robin
-        - load_based
-        - capability_based
-        - constraint_based
+    flow_control:
+      model: push (no polling)
+      delivery_guarantee: at_least_once
+      idempotency: required_at_agent
 
-      agent_selection:
+  lifecycle:
+    states:
+      - created
+      - queued (rabbitmq)
+      - pushed (wss_gateway)
+      - executing
+      - partial
+      - completed
+      - failed
 
-        inputs:
-          - agent_capabilities
-          - agent_role
-          - agent_health
-          - network_zone
-
-        rules:
-          - respeitar execution_constraints da task
-          - selecionar proxy quando requires_role=proxy
-          - evitar agents indisponíveis
-          - priorizar agents com menor carga
-
-  flow_control:
-
-    concurrency:
-      max_parallel_tasks: configurable
-
-    backpressure:
-      enabled: true
-
-    rules:
-      - evitar sobrecarga de agents
-      - respeitar limites globais
-      - respeitar limites por agent
-
-  task_model:
-
-    parent_task:
-      description: tarefa principal (ex: scan 60 IPs)
-
-    child_tasks:
-      description: tarefas distribuídas (10 IPs cada)
-
-    lifecycle:
-      states:
-        - created
-        - distributed
-        - running
-        - partial
-        - completed
-        - failed
-
-    idempotency:
-      required: true
-
-  retry_policy:
-
-    strategy:
-      - exponential_backoff
-
-    max_retries: configurable
-
-    conditions:
-      - agent_failure
-      - timeout
-      - transient_error
-
-  result_aggregation:
-
-    responsibilities:
-      - consolidar resultados
-      - correlacionar dados
-      - eliminar duplicidade
-
-    rules:
-      - resultados devem seguir result.yaml
-      - aggregation deve ser idempotente
-
-  proxy_awareness:
-
-    enabled: true
-
-    rules:
-      - tasks com requires_role=proxy devem ser executadas por proxy
-      - considerar múltiplos proxies
-      - suportar failover de proxy
-
-  observability:
-
-    metrics:
-      - tasks_dispatched
-      - tasks_completed
-      - tasks_failed
-      - scheduling_latency
-
-    tracing:
-      - correlation_id obrigatório
+  aggregation:
+    standard: result.yaml
+    requirements:
+      - correlate_by_correlation_id
+      - handle_partial_results

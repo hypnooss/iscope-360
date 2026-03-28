@@ -1,188 +1,52 @@
 platform:
 
-  version: 1.0
+  version: "1.4.0"
 
-  architecture:
-    style: event-driven
-    multi_tenant: true
-    ingestion: async
-    processing: distributed
+  principles:
+    - no_execution: "Plataforma NÃO realiza coleta de dados"
+    - contract_first: "Toda execução é dirigida pelo contract v1.4"
+    - event_driven: "Comunicação baseada em eventos via RabbitMQ"
 
   core_components:
 
+    orchestrator:
+      responsibilities:
+        - criação de tasks
+        - validação de capabilities
+        - controle de pool vs dedicated
+        - gestão de resultados e compliance
+
+    messaging:
+      broker: rabbitmq
+      queues:
+        - tasks.priority_low
+        - tasks.priority_high
+        - results.ingestion
+        - events.agent_status
+
+    wss_bridge:
+      name: WSS Gateway
+      responsibilities:
+        - manter conexões persistentes com agents (WSS 443)
+        - bridge RabbitMQ -> WSS (PUSH model)
+        - bridge WSS -> RabbitMQ (Result ingestion)
+        - gerenciamento de sessão de agente
+        - sem polling
+
     ingestion_layer:
-      description: >
-        Camada responsável por receber dados de agents, scanners e integrações externas.
-      responsibilities:
-        - autenticação de agentes (mTLS / token)
-        - validação de payload
-        - normalização de dados
-        - roteamento para Kafka
-      protocols:
-        - HTTPS
-        - gRPC (futuro)
+      validation: schema_check_v1.4
+      normalization: mandatory
+      storage:
+        metadata: postgres
+        events: opensearch
 
-    event_stream:
-      technology: Apache Kafka
-      responsibilities:
-        - buffer de ingestão
-        - desacoplamento
-        - replay de eventos
-      topics:
-        - logs.raw
-        - metrics.raw
-        - compliance.results
-        - scan.jobs
-        - scan.results
-        - alerts.generated
-
-    storage:
-
-      opensearch:
-        role: logs_and_events
-        responsibilities:
-          - armazenamento de logs
-          - indexação full-text
-          - suporte a SIEM (futuro: Wazuh)
-        retention_policy:
-          hot: 7d
-          warm: future
-        indexing_strategy:
-          - tenant_id
-          - data_type
-          - timestamp
-
-      timescaledb:
-        role: metrics
-        responsibilities:
-          - armazenamento de métricas time-series
-          - compressão e retenção
-        data_model:
-          - host_metrics
-          - service_metrics
-
-      postgresql_core:
-        role: application_state
-        responsibilities:
-          - tenants (multi-tenant)
-          - users / RBAC
-          - assets
-          - configurations
-          - blueprints
-          - audit logs
-
-    processing_layer:
-      description: workers assíncronos consumindo Kafka
-      workers:
-        - logs_processor
-        - metrics_processor
-        - compliance_processor
-        - alert_engine
-        - scan_orchestrator
-
-    siem_layer:
-      optional: true
-      suggested: Wazuh
-      responsibilities:
-        - correlação de eventos
-        - regras de detecção
-        - geração de alertas
-
-    api_layer:
-      description: backend da aplicação
-      responsibilities:
-        - CRUD (assets, tenants, configs)
-        - exposição de dados agregados
-        - controle de acesso
-      style:
-        - REST (inicial)
-        - GraphQL (futuro)
-
-    realtime_layer:
-      description: comunicação com frontend
-      technologies:
-        - WebSocket
-        - Kafka bridge (futuro)
-      use_cases:
-        - alertas em tempo real
-        - status de jobs
+    security:
+      auth:
+        - mTLS (agent authentication)
+        - token (fallback)
+      encryption:
+        - TLS 1.3 obrigatório
 
   multi_tenant:
-    strategy:
-      - tenant_id em todas entidades
-      - isolamento lógico
-      - RLS (PostgreSQL)
-    future:
-      - isolamento físico (por cliente enterprise)
-
-  security:
-    agent_auth:
-      - mTLS (preferencial)
-      - token rotativo
-    encryption:
-      - in_transit: TLS
-      - at_rest: enabled
-    secrets:
-      - vault (futuro)
-
-  observability:
-    logs: OpenSearch
-    metrics: TimescaleDB
-    tracing: OpenTelemetry (futuro)
-
-  agent_management:
-
-    roles:
-      - proxy
-      - worker
-
-    responsibilities:
-      - registro de agents
-      - controle de roles
-      - gestão de conectividade
-
-    proxy_management:
-
-      responsibilities:
-        - manter lista de proxies ativos
-        - monitorar health dos proxies
-        - priorizar proxies para execução de tasks
-        - suportar ambientes com múltiplos proxies
-
-      high_availability:
-
-        min_proxies: 2
-
-        selection_strategy:
-          - priority
-          - health_based
-
-      health_check:
-
-        sources:
-          - agent.heartbeat
-          - connection_status
-
-        metrics:
-          - cpu_load
-          - memory_usage
-          - active_tasks_count
-
-      failover:
-
-        automatic: true
-
-        conditions:
-          - proxy_unreachable
-          - proxy_unhealthy
-
-        behavior:
-          - selecionar próximo proxy disponível
-          - reencaminhar novas tasks
-          - não interromper tasks já em execução
-
-      discovery:
-
-        responsibilities:
-          - fornecer lista de proxies disponíveis
-          - atualizar prioridades dinamicamente
+    strategy: logical_isolation
+    correlation_id: mandatory

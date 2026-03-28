@@ -1,387 +1,51 @@
 agent:
-  version: 1.2
-  ownership: platform | workspace  # platform: infra do iScope360, workspace: infra do cliente
+  version: "1.4.0"
+  ownership: platform | workspace
 
   architecture:
     type: modular
-    execution_model: controlled_execution_runtime
+    execution_model: contract_driven_runtime
     update_strategy: atomic_with_rollback
 
-  core:
-
-    config_manager:
-      responsibilities:
-        - receber configuração da plataforma
-        - aplicar blueprints
-        - versionamento de config
-        - rollback
-
-    task_engine:
-      responsibilities:
-        - consumir tasks da plataforma
-        - validar estrutura da task
-        - validar allowlist de módulos
-        - encaminhar para fila interna
-        - gerenciar ciclo de vida da execução
-      states:
-        - received
-        - validated
-        - queued
-        - running
-        - success
-        - failed
-        - retrying
-
-    scheduler:
-      responsibilities:
-        - agendamento de tasks locais
-        - retry com backoff exponencial
-        - execução periódica (heartbeat, sync)
-
-    internal_queue:
-      type: in_memory + sqlite_fallback
-      responsibilities:
-        - enfileirar tasks
-        - controlar concorrência
-        - garantir ordem de execução
-
-    identity:
-      responsibilities:
-        - autenticação com backend
-        - gerenciamento de certificados/tokens
-      methods:
-        - mTLS
-        - token rotativo
-
-  connection_manager:
-    responsibilities:
-      - manter conexão persistente
-      - reconectar automaticamente
-      - gerenciar estado de conexão
-      - detectar falhas
-      - suportar modo relay via proxy
-
-    states:
-      - connecting
-      - connected
-      - disconnected
-      - reconnecting
+  roles:
+    available:
+      - worker       # Agente padrão para tarefas genéricas
+      - proxy        # Relay de comunicação para redes isoladas
+      - super_agent  # Agente de alta performance com engine de contrato v1.4
 
   communication:
-
-    mode:
-      primary: streaming
-      fallback: polling
-
+    transport: wss
+    port: 443
+    mode: outbound_only
+    
     streaming:
       enabled: true
-      technologies:
-        - websocket
-        - grpc_stream
-
-      responsibilities:
-        - receber tasks em tempo real
-        - enviar resultados
-        - enviar eventos
-        - suportar remote access
-
-      connection:
-        lifecycle:
-          - connect
-          - authenticate
-          - maintain
-          - reconnect
-
-        requirements:
-          - keepalive obrigatório
-          - reconexão automática
-          - tolerância a falhas
-
-    fallback:
-      polling:
-        interval: configurable
-        use_cases:
-          - fallback em falha de conexão
-          - ambientes restritivos
-
-    heartbeat:
-      required: true
-      interval: configurable
-      payload:
-        - cpu_load
-        - memory_usage
-        - active_tasks_count
-        - disk_space
-
-  local_storage:
-
-    engine:
-      type: sqlite
-
-    responsibilities:
-      - persistência de estado
-      - controle de tasks
-      - suporte a retry
-      - suporte a rollback
-      - buffer offline
-
-    data_models:
-      - agent_state
-      - tasks
-      - task_history
-      - update_state
-      - config_state
-      - proxy_cache
-
-    behaviors:
-      crash_recovery: enabled
-      retry_logic: enabled
-      offline_mode: enabled
-      retention: configurable
-
-  telemetry:
-
-    opentelemetry_collector:
-      mode: embedded
-      responsibilities:
-        - coleta de logs
-        - coleta de métricas
+      protocol: websocket
+      heartbeat: required
+      reconnect: automatic
 
   execution:
-
-    execution_engine:
-      responsibilities:
-        - orquestrar execução de módulos
-        - aplicar timeout obrigatório
-        - aplicar limites de CPU/memória
-        - aplicar isolamento (sandbox)
-        - padronizar output
+    engine: contract_driven
+    runtime:
+      type: go_runtime
+      context_isolation: kv_store_per_task
+      quota_management: memory_limit_enabled
 
     module_registry:
       responsibilities:
-        - registrar módulos disponíveis
-        - mapear módulo → adapter
-
-    module_adapters:
-      responsibilities:
-        - encapsular execução de ferramentas
-        - sanitizar parâmetros
-        - capturar output
-        - normalizar saída
-
-      existing_modules:
-        - nmap
-        - masscan
-        - amass
-        - subfinder
-        - httpx
-        - nuclei
-        - powershell
-        - ssh
-        - bloodhound
-        - pingcastle
-        - dns_analyzer
-        - whois_analyzer
-        - dmarc_analyzer
-        - compliance_engine
+        - catalogar capabilities locais
+        - validar compatibilidade de versão (min_agent_version)
 
     sandbox:
+      required: true
       strategies:
         - subprocess_controlled
-        - cgroups
-        - job_objects
-        - container
-
-    execution_limits:
-      timeout: required
-      cpu_limit: configurable
-      memory_limit: configurable
-
-      concurrency_control:
-        global_limit: configurable
-        per_module_limit: configurable
-
-    output_contract:
-      reference: result.yaml
-
-  compliance_module:
-    responsibilities:
-      - execução de blueprints
-      - uso do execution_engine
-
-  internal_scan_module:
-    responsibilities:
-      - scans internos controlados
-      - descoberta de rede local
-      - análise de serviços internos
-
-    constraints:
-      - rate_limit
-      - escopo restrito
-      - controle via plataforma
-
-  cloud_identity:
-
-    providers:
-      - azure_ad
-
-    azure_ad:
-      auth_method: certificate_based
-
-      capabilities:
-        - microsoft_graph
-        - exchange_online_powershell
-        - sharepoint_api
-
-      certificate_management:
-        storage:
-          - os_keystore
-
-        requirements:
-          - private_key_protected
-          - encryption_at_rest
-
-      token_flow:
-        type: client_credentials
-
-  local_capabilities:
-    supported_os:
-      - linux
-      - windows
-    network:
-      - dns.resolve
-      - dns.dnssec_validate
-      - dns.full_recursion
-      - http.probe
-      - whois.lookup
-    osint:
-      - osint.passive_dns
-      - osint.subdomain_enum
-
-  update_system:
-
-    bootstrap:
-      responsibilities:
-        - garantir inicialização
-        - fallback seguro
-
-    supervisor:
-      responsibilities:
-        - gerenciar runtime
-        - orquestrar updates
-
-    update_flow:
-      - download
-      - verify_signature
-      - start_new_instance
-      - health_check
-      - switch
-      - cleanup_old
-
-    rollback:
-      enabled: true
-
-    rollout:
-      strategy:
-        - canary
-        - staged
-
-  observability:
-
-    task_logging:
-      enabled: true
-
-    health_monitoring:
-      metrics:
-        - cpu_load
-        - memory_usage
-        - active_tasks_count
+        - container (optional)
 
   security:
-
+    auth:
+      primary: mTLS
+      fallback: rotating_token
     task_validation:
-      - schema_validation
-      - allowlist_modules
-
-    execution_security:
-      - sandbox obrigatório
-      - sem execução arbitrária
-
-    communication:
-      - TLS obrigatório
-
-  extensibility:
-
-    plugin_system:
-      responsibilities:
-        - adicionar novos módulos
-        - adicionar adapters
-
-  roles:
-
-    available:
-      - worker
-      - proxy
-
-    assignment:
-      controlled_by: platform
-
-  proxy:
-
-    responsibilities:
-      - executar tasks em redes internas
-      - acessar APIs internas
-      - atuar como relay de comunicação
-
-    discovery:
-
-      primary: dns
-
-      dns:
-
-        record_name: iscope-proxy
-        resolution_strategy:
-          - system_dns_suffix
-          - configured_domain
-          - plain_hostname
-
-        refresh_interval: 60s
-
-      fallback:
-
-        last_known: true
-        static_list: optional
-
-    connection:
-
-      mode:
-        - direct
-        - relay
-
-      relay:
-
-        retry_strategy: exponential_backoff
-
-        proxy_selection:
-
-          strategy:
-            - round_robin
-            - failover
-
-    persistence:
-
-      last_known_proxies:
-        storage: local_disk
-        format: json
-
-    high_availability:
-
-      min_proxies: 2
-
-      failover:
-        enabled: true
-        strategy: round_robin
-
-      health_check:
-        enabled: true
-        interval: configurable
+      - signature_verification
+      - capability_check

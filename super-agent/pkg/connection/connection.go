@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/url"
 	"sync"
-	"time"
 )
 
 // WSSClient gerencia a conexão persistente com a plataforma.

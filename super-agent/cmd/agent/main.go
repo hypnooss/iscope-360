@@ -19,6 +19,7 @@ func main() {
 	engine.RegisterCapability("dns.resolve", func(ctx *context.Context, params map[string]interface{}) (interface{}, error) {
 		log.Println("Capability [dns.resolve] executing...")
 		target, _ := params["target_domain"].(string)
+		log.Printf("Target domain: %s", target)
 		// Mock logic: returns a list of IPs
 		return []string{"192.168.1.1", "10.0.0.5"}, nil
 	})
