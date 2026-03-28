@@ -22,14 +22,10 @@ import {
 } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
-  Users,
   LogOut,
   Menu,
   X,
   Settings,
-  Bot,
-  Cpu,
-  BookOpen,
 } from 'lucide-react';
 import logoIscope from '@/assets/logo-iscope.png';
 
@@ -107,43 +103,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           icon={LayoutDashboard} 
           label="Dashboard" 
           isActive={location.pathname === '/dashboard'} 
-        />
-        
-        <SidebarLink 
-          to="/agents" 
-          icon={Bot} 
-          label="Agents" 
-          isActive={location.pathname.startsWith('/agents')} 
-        />
-
-        <SidebarLink 
-          to="/super-agents" 
-          icon={Cpu} 
-          label="Super Agents" 
-          isActive={location.pathname.startsWith('/super-agents')} 
-        />
-
-        <div className="my-4 border-t border-border/40 mx-2" />
-
-        <SidebarLink 
-          to="/users" 
-          icon={Users} 
-          label="Usuários" 
-          isActive={location.pathname === '/users'} 
-        />
-
-        <SidebarLink 
-          to="/settings" 
-          icon={Settings} 
-          label="Configurações" 
-          isActive={location.pathname === '/settings'} 
-        />
-
-        <SidebarLink 
-          to="/docs" 
-          icon={BookOpen} 
-          label="Documentação" 
-          isActive={location.pathname === '/docs'} 
         />
       </div>
     </TooltipProvider>
