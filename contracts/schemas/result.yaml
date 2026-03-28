@@ -1,6 +1,6 @@
 result:
 
-  version: 1.1
+  version: "1.4.0"
 
   description: resposta padrão do agent para a plataforma
 
@@ -11,7 +11,9 @@ result:
       correlation_id: uuid
       agent_id: string
       tenant_id: uuid
-      module: string
+      module:
+        name: string
+        version: string
       timestamp: datetime
 
       # proxy relay
@@ -20,48 +22,42 @@ result:
 
     status:
       allowed:
-        - success
-        - failed
-        - partial
+        - success  # todos os steps obrigatorios tiveram sucesso
+        - failed   # falha em step abort=true
+        - partial  # falha em step on_failure=continue ou abort=false
 
     execution:
-
       duration_ms: number
       retries: number
+      
+      steps:
+        - id: string
+          status: success | failed | skipped
+          duration_ms: number
+          error: 
+            code: number
+            message: string
 
       resources:
-
         cpu_usage: number
         memory_usage: number
+        peak_memory_context: number # pico de uso da KV store
 
     data:
-      description: resultado normalizado
-      type: object
+      raw_data: object
+      normalized_data: object
+      inventory: array
+      findings: array
 
     error:
-
-      structure:
-        code: number
-        name: string
-        category: string
-        description: string
-        retriable: boolean
-        details: object
-
-      source:
-        reference: errors.yaml
+      code: number
+      message: string
+      step_id: string
+      details: object
 
   rules:
-
-    # gerais
-    - todo resultado deve seguir esse schema
-    - metadata.correlation_id é obrigatório
-    - status deve refletir corretamente a execução
-    - data deve ser normalizado
-    - erros devem seguir errors.yaml
-    - result deve ser compatível com protocol.message_contracts
-
-    # proxy relay
-    - quando executado via proxy, origin_agent_id deve representar o agente real
-    - via_proxy deve indicar o proxy intermediário
-    - platform deve usar origin_agent_id como identidade principal quando presente
+    - todo resultado deve seguir esse schema v1.4
+    - status=partial deve ser usado se steps opcionais falharam
+    - data.inventory deve conter entidades descobertas
+    - data.findings deve conter alertas ou vulnerabilidades
+    - erros devem incluir step_id para rastreabilidade

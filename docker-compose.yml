@@ -48,18 +48,6 @@ services:
     ports:
       - "8000:8000"
 
-  worker:
-    build:
-      context: .
-      dockerfile: worker/Dockerfile  
-    container_name: iscope-worker
-    depends_on:
-      - rabbitmq
-      - postgres
-    environment:
-      DATABASE_URL: postgres://iscope:iscope@postgres:5432/iscope
-      RABBITMQ_URL: amqp://rabbitmq:5672
-
 volumes:
   postgres_data:
   minio_data:

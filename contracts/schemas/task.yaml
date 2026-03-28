@@ -1,6 +1,6 @@
 task:
 
-  version: 1.0
+  version: "1.4.0"
 
   structure:
 
@@ -8,68 +8,48 @@ task:
     correlation_id: uuid
     tenant_id: uuid
 
-    target:
-      type: agent | scan_worker
-      id: agent_id
-
-    type: compliance | internal_scan | external_scan | external_domains_compliance
+    module:
+      name: string
+      version: string
 
     action: execute
 
+    execution_requirements:
+      mode: pool | dedicated
+      
+      pool:
+        required_agent_type: string
+        required_capabilities: array
+      
+      dedicated:
+        target_agent_id: string
+
     payload:
-
-      module: string # ex: domain_analyzer_composite, compliance_engine, etc.
-
-      params:
-        target_domain: string
-        include_partners: boolean
-        partners: array
-        tools: array
-        api_keys_refs: array
-
+      params: object # mapeado para os consumes do módulo
+      
       limits:
         timeout: number
         cpu: low | medium | high
         rate: safe | aggressive
 
-    execution:
-
+    execution_policy:
       priority: low | medium | high
-
+      retry: number
       schedule:
         type: immediate | cron
-        value: string  # cron expression se aplicável
-
-      retry: number
-
-    execution_constraints:
-
-      allowed_execution:
-        ownership:
-          - platform
-          - workspace
-
-      requires_role:
-        - proxy
-        - worker
-
-      network_zone:
-        - internal
-        - external
+        value: string
 
     security:
-
       signed: boolean
       signature: string
 
     metadata:
-
       created_by: user_id
       source: system | user | automation
       timestamp: datetime
 
   rules:
     - toda task deve conter task_id e correlation_id
-    - payload.module deve ser válido no module.yaml
-    - execution_constraints devem ser respeitados pelo scheduler
-    - tasks devem ser idempotentes
+    - module deve ser válido e suportado pelo agente
+    - execution_requirements pode sobrescrever o padrão do module.yaml (override seguro)
+    - o agente deve emitir erro se não possuir as capabilities exigidas

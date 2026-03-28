@@ -1,15 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "iScope360 Task",
+  "title": "iScope360 Task v1.4",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "task_id",
     "correlation_id",
     "tenant_id",
-    "target",
-    "type",
+    "module",
     "action",
+    "execution_requirements",
     "payload"
   ],
   "properties": {
@@ -25,33 +25,21 @@
       "type": "string",
       "format": "uuid"
     },
-    "target": {
+    "module": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "type",
-        "id"
+        "name",
+        "version"
       ],
       "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "agent",
-            "scan_worker"
-          ]
+        "name": {
+          "type": "string"
         },
-        "id": {
+        "version": {
           "type": "string"
         }
       }
-    },
-    "type": {
-      "type": "string",
-      "enum": [
-        "compliance",
-        "internal_scan",
-        "external_scan"
-      ]
     },
     "action": {
       "type": "string",
@@ -59,23 +47,53 @@
         "execute"
       ]
     },
+    "execution_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "pool",
+            "dedicated"
+          ]
+        },
+        "pool": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "required_agent_type": {
+              "type": "string"
+            },
+            "required_capabilities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "dedicated": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "target_agent_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "payload": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "module",
         "params"
       ],
       "properties": {
-        "module": {
-          "type": "string",
-          "enum": [
-            "nmap",
-            "nuclei",
-            "ssh_check",
-            "m365_audit"
-          ]
-        },
         "params": {
           "type": "object"
         },
@@ -84,8 +102,7 @@
           "additionalProperties": false,
           "properties": {
             "timeout": {
-              "type": "integer",
-              "minimum": 0
+              "type": "integer"
             },
             "cpu": {
               "type": "string",
@@ -106,7 +123,7 @@
         }
       }
     },
-    "execution": {
+    "execution_policy": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -118,12 +135,12 @@
             "high"
           ]
         },
+        "retry": {
+          "type": "integer"
+        },
         "schedule": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "type"
-          ],
           "properties": {
             "type": {
               "type": "string",
@@ -135,36 +152,6 @@
             "value": {
               "type": "string"
             }
-          }
-        },
-        "retry": {
-          "type": "integer",
-          "minimum": 0
-        }
-      }
-    },
-    "execution_constraints": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "requires_role": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "proxy",
-              "worker"
-            ]
-          }
-        },
-        "network_zone": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "internal",
-              "external"
-            ]
           }
         }
       }

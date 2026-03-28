@@ -1,102 +1,67 @@
 module:
 
-  version: 1.0
-
-  description: padrão de implementação de módulos do agent
-
   identity:
-    required:
-      - name
-      - version
+    name: external_domains_compliance
+    version: "1.4.0"
+    min_agent_version: "2.0.0"
 
-  capabilities:
-
-    description: recursos necessários para execução
-
-    allowed:
-      - network.internal
-      - network.external
+  execution_requirements:
+    mode: pool
+    required_agent_type: super_agent
+    required_capabilities:
       - dns.resolve
-      - dns.dnssec_validate
       - http.probe
-      - whois.lookup
-      - osint.passive_dns
-      - osint.subdomain_enum
-      - filesystem_read
-      - filesystem_write
-      - privileged
 
-    rules:
-      - módulos devem declarar apenas capabilities necessárias
-      - capabilities devem ser validadas pela plataforma antes da execução
-
-  input:
-
-    source:
-      - task.payload.params
-
-    rules:
-      - deve ser validado antes da execução
-      - deve ser sanitizado
-      - não pode aceitar parâmetros arbitrários sem validação
-      - deve respeitar schema definido pelo módulo
-
-  execution:
-
-    flow:
-      - validate
-      - execute
-      - normalize
-
-    rules:
-      - deve usar execution_engine
-      - deve respeitar timeout definido na task
-      - deve respeitar limites de CPU/memória
-      - não pode executar comandos arbitrários
-      - não pode sair do sandbox
-
-  output:
-
-    contract:
-      reference: result.yaml
-
-    rules:
-      - output deve seguir result.yaml
-      - output deve ser normalizado
-      - não retornar dados brutos sem tratamento
-      - deve incluir status, metadata e execution info
+  flow:
+    - id: resolve_dns
+      name: "Resolução de DNS"
+      capability: dns.resolve
+      on_failure: abort
+      consumes:
+        - name: target_domain
+          schema_ref: domain_name.schema.json
+          required: true
+      produces:
+        - name: resolved_ips
+          schema_ref: ip_list.schema.json
+    
+    - id: scan_http
+      name: "Probe HTTP"
+      capability: http.probe
+      on_failure: continue
+      consumes:
+        - name: resolved_ips
+          schema_ref: ip_list.schema.json
+          required: false
+      produces:
+        - name: http_metadata
+          schema_ref: http_result.schema.json
 
   error_handling:
-
     contract:
       reference: errors.yaml
-
-    rules:
-      - erros devem ser estruturados
-      - não retornar exceções brutas
-      - deve mapear erros internos para códigos padronizados
+    structure:
+      code: number
+      message: string
+      step_id: string
+      details: object
 
   security:
-
     rules:
       - sanitizar inputs
       - validar parâmetros antes da execução
       - não aceitar comandos dinâmicos não validados
-      - não acessar recursos fora do escopo permitido
       - respeitar capabilities declaradas
 
   observability:
-
     required:
       - logs de execução
       - tempo de execução
       - status final
-
     integration:
       - opentelemetry
 
   constraints:
-
     rules:
       - módulos não devem conter lógica de negócio
       - módulos não devem tomar decisões
