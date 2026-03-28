@@ -4,30 +4,16 @@ import { SteppedShowcase } from '@/components/landing/SteppedShowcase';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
-import { NetworkAnimation } from '@/components/NetworkAnimation';
 import { ScrollDownIndicator } from '@/components/landing/ScrollDownIndicator';
 import { Button } from '@/components/ui/button';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import {
-  ArrowRight, Shield, Network, Eye, Zap,
+  ArrowRight, Shield, Network, Eye,
   Quote, Scan, BarChart3, FileSearch, ShieldCheck,
-  AlertTriangle, Clock, Layers, BookOpen, CheckCircle2, Lock,
   BellOff, SlidersHorizontal, Puzzle, Calendar, Tag,
-  Cloud, Server, Globe, Cpu,
 } from 'lucide-react';
 
 /* ── Animation Variants (hero / CTA only) ── */
-const ease = [0.22, 1, 0.36, 1] as const;
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 60 },
-  visible: { opacity: 1, y: 0 },
-};
-
-const fadeUpScale = {
-  hidden: { opacity: 0, y: 80, scale: 0.92 },
-  visible: { opacity: 1, y: 0, scale: 1 },
-};
 
 const stagger = {
   visible: { transition: { staggerChildren: 0.1 } },
@@ -107,8 +93,8 @@ const Index = () => {
     <div className="min-h-screen text-foreground flex flex-col relative">
       <Header />
 
-      <motion.div style={{ opacity: canvasOpacity }} className="fixed inset-0 z-0 pointer-events-none origin-center">
-        <NetworkAnimation className="w-full h-full" />
+      <motion.div style={{ opacity: canvasOpacity }} className="fixed inset-0 z-0 pointer-events-none origin-center bg-background">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent opacity-50" />
       </motion.div>
 
       <main className="flex-1 relative">
