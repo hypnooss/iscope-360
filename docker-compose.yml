@@ -1,4 +1,4 @@
-version: "3.9"
+﻿version: "3.9"
 
 services:
 
@@ -45,11 +45,17 @@ services:
       DATABASE_URL: postgres://iscope:iscope@postgres:5432/iscope
       RABBITMQ_URL: amqp://rabbitmq:5672
       S3_ENDPOINT: http://minio:9000
+      JWT_SECRET: ${JWT_SECRET:-change-me-use-openssl-rand-hex-32-in-production}
+      CORS_ORIGINS: "*"
+      DEBUG: "true"
     ports:
       - "8000:8000"
 
   web:
-    build: ./web
+    build:
+      context: ./web
+      args:
+        VITE_API_URL: http://localhost:8000
     container_name: iscope-web
     depends_on:
       - api

@@ -1,8 +1,14 @@
-fastapi
-uvicorn
+﻿fastapi
+uvicorn[standard]
 psycopg2-binary
 sqlalchemy
-pydantic
+pydantic[email]
+pydantic-settings
 boto3
 aio_pika
 websockets
+passlib[bcrypt]
+PyJWT
+pyotp
+python-multipart
+email-validator

@@ -1,18 +1,20 @@
 import { Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from "react-router-dom";
 
 const NAV_LINKS = [
-  { label: 'Produto', href: '#features' },
-  { label: 'Features', href: '#how-it-works' },
-  { label: 'Integrações', href: '#integrations' },
-  { label: 'Docs', href: '#blog' },
-  { label: 'Contato', href: '#cta' },
+  { label: 'Produto', href: '/#features' },
+  { label: 'Features', href: '/#how-it-works' },
+  { label: 'Integrações', href: '/#integrations' },
+  { label: 'Docs', href: '/#blog' },
+  { label: 'Contato', href: '/#cta' },
 ];
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -22,6 +24,12 @@ export function Header() {
 
   const scrollTo = (href: string) => {
     setMobileOpen(false);
+
+    if (href.startsWith('/#')) {
+      navigate(href);
+      return;
+    }
+
     const el = document.querySelector(href);
     el?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -34,25 +42,23 @@ export function Header() {
         }`}
     >
       <div className="max-w-[1200px] mx-auto px-6 h-[72px] flex items-center justify-between">
-        {/* Logo */}
+
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-lg font-bold font-heading text-foreground">iScope 360</span>
         </div>
 
-        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
           {NAV_LINKS.map((link) => (
             <button
               key={link.href}
               onClick={() => scrollTo(link.href)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-full after:h-[2px] after:bg-primary after:scale-x-0 after:origin-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-left"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
             >
               {link.label}
             </button>
           ))}
         </nav>
 
-        {/* Mobile toggle */}
         <button
           className="md:hidden text-foreground"
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -61,21 +67,19 @@ export function Header() {
         </button>
       </div>
 
-      {/* Mobile Nav */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="md:hidden border-t border-border/20 bg-background/95 backdrop-blur-xl px-6 py-4 space-y-3 overflow-hidden"
+            className="md:hidden border-t border-border/20 bg-background/95 px-6 py-4 space-y-3"
           >
             {NAV_LINKS.map((link) => (
               <button
                 key={link.href}
                 onClick={() => scrollTo(link.href)}
-                className="block w-full text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="block w-full text-left text-sm text-muted-foreground hover:text-foreground"
               >
                 {link.label}
               </button>

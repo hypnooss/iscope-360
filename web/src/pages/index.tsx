@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router-dom';
 //import { useAuth } from '@/features/auth/context/AuthContext';
 import { Header } from '@/features/landing/components/Header';
 import { Footer } from '@/features/landing/components/Footer';
-import { NetworkAnimation } from '@/features/landing/components/NetworkAnimation';
 import { Button } from '@/components/ui/button';
+import { useLocation } from "react-router-dom";
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import {
     ArrowRight, Shield, Network, Eye, Zap,
@@ -86,6 +86,7 @@ const Index = () => {
     const mfaEnrolled = false;
 
     const navigate = useNavigate();
+    const location = useLocation();
     const { scrollY } = useScroll();
 
     // Mantém o terreno de dados visível por toda a página, apenas caindo bem suave lá no final
@@ -101,6 +102,17 @@ const Index = () => {
         }
     }, [user, loading, navigate, mfaRequired, mfaEnrolled]);
 
+    useEffect(() => {
+        if (location.hash) {
+            const el = document.querySelector(location.hash);
+            if (el) {
+                setTimeout(() => {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                }, 50);
+            }
+        }
+    }, [location]);
+
     if (loading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -112,10 +124,6 @@ const Index = () => {
     return (
         <div className="min-h-screen text-foreground flex flex-col relative">
             <Header />
-
-            <motion.div style={{ opacity: canvasOpacity }} className="fixed inset-0 z-0 pointer-events-none origin-center">
-                <NetworkAnimation className="w-full h-full" />
-            </motion.div>
 
             <main className="flex-1 relative">
                 <section id="hero" data-section className="h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden">
