@@ -1,12 +1,16 @@
 ﻿# Stage 1: Build
 FROM node:20-alpine AS build-stage
 WORKDIR /app
+
 ARG VITE_API_URL=http://localhost:8000
 ENV VITE_API_URL=$VITE_API_URL
+
 COPY package*.json ./
-RUN npm install
+RUN npm install && chmod -R +x node_modules/.bin  # 👈 AQUI
+
 COPY . .
-RUN npm run build
+
+RUN node node_modules/vite/bin/vite.js build
 
 # Stage 2: Serve
 FROM nginx:stable-alpine
