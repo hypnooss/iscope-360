@@ -1,0 +1,1 @@
+ALTER FUNCTION public.get_posture_insights_lite(uuid) SET search_path = 'public';

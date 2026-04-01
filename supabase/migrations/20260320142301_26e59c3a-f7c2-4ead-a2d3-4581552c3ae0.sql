@@ -1,0 +1,1 @@
+ALTER TABLE public.agent_metrics ADD COLUMN ip_addresses text[] DEFAULT NULL;

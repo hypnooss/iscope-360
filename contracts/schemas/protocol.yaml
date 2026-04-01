@@ -7,8 +7,7 @@ protocol:
   transport:
 
     primary:
-      - websocket
-      - grpc_stream
+      - supabase_realtime_channel # Substitui websocket/grpc puro, padrão Phoenix over WebSocket gerenciado pelo Supabase.
 
     requirements:
       - conexão persistente

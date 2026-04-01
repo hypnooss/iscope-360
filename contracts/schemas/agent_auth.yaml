@@ -1,0 +1,29 @@
+agent_auth:
+  description: Autenticação de Agentes usando Supabase GoTrue e RBAC
+  version: 1.0
+
+  flow:
+    description: Como um agente se autentica ao ligar pela primeira vez e reconectar.
+    steps:
+      - origin: agent
+        description: Agente roda com SUPABASE_URL e SUPABASE_ANON_KEY injetados, junto com credenciais de login geradas ou provisionadas pela interface.
+      - origin: agent
+        description: Chama a API do Supabase (GoTrue) `/auth/v1/token?grant_type=password` usando as credenciais providenciadas.
+      - origin: platform
+        description: O Supabase retorna o `access_token` (JWT) e `refresh_token`.
+      - origin: agent
+        description: Usa o `access_token` na assinatura do canal WebSocket (Supabase Realtime) e para as chamadas da API PostgREST (`/rest/v1/...`).
+  
+  jwt_claims:
+    description: O JWT gerado pelo Supabase carrega a identidade segura do Agente para os gatilhos e políticas do PostgreSQL.
+    fields:
+      sub: "agent_uid (UUID principal)"
+      role: "authenticated"
+      app_metadata:
+        provider: "email"
+        type: "agent"
+
+  rules:
+    - Nunca expor a chave `service_role` dentro do agente.
+    - O agente deve sempre usar a `anon_key` e efetuar login explícito em uma conta de serviço designada no workspace dele.
+    - O banco de dados do Supabase usará Row Level Security (RLS), utilizando a função `auth.uid()` para permitir a escrita de telemetria baseada no escopo (tenant) correto.

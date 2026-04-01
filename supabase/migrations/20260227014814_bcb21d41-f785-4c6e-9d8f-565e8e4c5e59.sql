@@ -1,0 +1,15 @@
+INSERT INTO cve_sources (module_code, source_type, source_label, config, is_active) VALUES
+('external_domain', 'nist_nvd_web', 'ISC BIND', '{"product_filter": "ISC BIND"}', true),
+('external_domain', 'nist_nvd_web', 'Dovecot', '{"product_filter": "dovecot"}', true),
+('external_domain', 'nist_nvd_web', 'Postfix', '{"product_filter": "postfix"}', true),
+('external_domain', 'nist_nvd_web', 'MikroTik RouterOS', '{"product_filter": "MikroTik RouterOS"}', true),
+('external_domain', 'nist_nvd_web', 'Microsoft Exchange', '{"product_filter": "Microsoft Exchange"}', true),
+('external_domain', 'nist_nvd_web', 'MariaDB', '{"product_filter": "mariadb"}', true),
+('external_domain', 'nist_nvd_web', 'Cisco ASA', '{"product_filter": "Cisco ASA"}', true),
+('external_domain', 'nist_nvd_web', 'ProFTPD', '{"product_filter": "proftpd"}', true),
+('external_domain', 'nist_nvd_web', 'vsftpd', '{"product_filter": "vsftpd"}', true),
+('external_domain', 'nist_nvd_web', 'Pure-FTPd', '{"product_filter": "pure-ftpd"}', true),
+('external_domain', 'nist_nvd_web', 'Hikvision', '{"product_filter": "hikvision"}', true),
+('external_domain', 'nist_nvd_web', 'FortiMail', '{"product_filter": "FortiMail"}', true),
+('external_domain', 'nist_nvd_web', 'LiteSpeed', '{"product_filter": "litespeed"}', true),
+('external_domain', 'nist_nvd_web', 'Jetty', '{"product_filter": "jetty"}', true);

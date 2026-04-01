@@ -1,34 +1,17 @@
-﻿import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { apiFetch } from "@/lib/api";
-import { setUserTimezone } from "@/lib/dateUtils";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+import { setUserTimezone } from '@/lib/dateUtils';
 
-type User = {
-  id: string;
-  email: string;
-};
-
-type Session = {
-  accessToken: string;
-  refreshToken: string;
-} | null;
-
-type AppRole = "super_admin" | "super_suporte" | "workspace_admin" | "user";
-type ModulePermission = "view" | "edit" | "full";
+type AppRole = 'super_admin' | 'super_suporte' | 'workspace_admin' | 'user';
+type ModulePermission = 'view' | 'edit' | 'full';
 
 interface UserProfile {
   id: string;
   email: string;
   full_name: string | null;
   avatar_url: string | null;
-  timezone: string;
+  timezone: string; // default: 'UTC'
 }
 
 interface ModulePermissions {
@@ -39,48 +22,11 @@ interface ModulePermissions {
   external_domain: ModulePermission;
 }
 
-const defaultPermissions: ModulePermissions = {
-  dashboard: "view",
-  firewall: "view",
-  reports: "view",
-  users: "view",
-  external_domain: "view",
-};
-
-const ACCESS_KEY = "iscope_access_token";
-const REFRESH_KEY = "iscope_refresh_token";
-
-interface MeApi {
-  user_id: string;
-  email: string;
-  msp_id: string;
-  msp_slug: string;
-  msp_name: string;
-  effective_role: string;
-  profile: {
-    id: string;
-    email: string;
-    full_name: string | null;
-    avatar_url: string | null;
-    timezone: string;
-  };
-  permissions: Record<string, string>;
-  mfa_enabled: boolean;
-  mfa_required_by_msp: boolean;
-}
-
-function mapPermissions(raw: Record<string, string>): ModulePermissions {
-  const p = { ...defaultPermissions };
-  (Object.keys(p) as (keyof ModulePermissions)[]).forEach((k) => {
-    const v = raw[k];
-    if (v === "view" || v === "edit" || v === "full") p[k] = v;
-  });
-  return p;
-}
-
-function mapRole(r: string): AppRole {
-  if (r === "super_admin" || r === "super_suporte" || r === "workspace_admin" || r === "user") return r;
-  return "user";
+interface CachedUserData {
+  profile: UserProfile;
+  role: AppRole;
+  permissions: ModulePermissions;
+  timestamp: number;
 }
 
 interface AuthContextType {
@@ -104,6 +50,17 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
+const defaultPermissions: ModulePermissions = {
+  dashboard: 'view',
+  firewall: 'view',
+  reports: 'view',
+  users: 'view',
+  external_domain: 'view',
+};
+
+const CACHE_KEY_PREFIX = 'user_data_';
+const CACHE_TTL = 5 * 60 * 1000;
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -116,231 +73,250 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaEnrolled, setMfaEnrolled] = useState(false);
   const [mfaStep, setMfaStep] = useState(false);
-  const mfaTokenRef = useRef<string | null>(null);
+  
+  const fetchingRef = useRef(false);
+  const lastFetchedUserIdRef = useRef<string | null>(null);
 
-  const clearUserData = useCallback(() => {
+  const checkMfaStatus = async () => {
+    try {
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (!aalData) return;
+
+      const { currentLevel, nextLevel } = aalData;
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const hasVerifiedTotp = factorsData?.totp?.some((f: any) => f.status === 'verified') ?? false;
+
+      setMfaEnrolled(hasVerifiedTotp);
+
+      if (nextLevel === 'aal2' && currentLevel === 'aal1') {
+        setMfaRequired(true);
+        setMfaStep(true);
+      } else if (!hasVerifiedTotp) {
+        setMfaRequired(true);
+        setMfaStep(false);
+      } else {
+        setMfaRequired(false);
+        setMfaStep(false);
+      }
+    } catch (err) {
+      console.error('MFA status check error:', err);
+    }
+  };
+
+  const refreshMfaStatus = async () => {
+    await checkMfaStatus();
+  };
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          setTimeout(() => {
+            fetchUserData(session.user.id);
+            checkMfaStatus();
+          }, 0);
+        } else {
+          clearUserData();
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserData(session.user.id);
+        checkMfaStatus();
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const clearUserData = () => {
     setProfile(null);
     setRole(null);
     setPermissions(defaultPermissions);
     setMfaRequired(false);
     setMfaEnrolled(false);
     setMfaStep(false);
-    mfaTokenRef.current = null;
-    setUserTimezone("UTC");
-  }, []);
-
-  const persistTokens = (access: string, refresh: string) => {
-    sessionStorage.setItem(ACCESS_KEY, access);
-    sessionStorage.setItem(REFRESH_KEY, refresh);
-    setSession({ accessToken: access, refreshToken: refresh });
+    setLoading(false);
+    lastFetchedUserIdRef.current = null;
   };
 
-  const clearTokens = () => {
-    sessionStorage.removeItem(ACCESS_KEY);
-    sessionStorage.removeItem(REFRESH_KEY);
-    setSession(null);
-  };
-
-  const applyMe = useCallback((me: MeApi, accessToken: string) => {
-    const rt = sessionStorage.getItem(REFRESH_KEY) || "";
-    setUser({ id: me.user_id, email: me.email });
-    setProfile({
-      id: me.profile.id,
-      email: me.profile.email,
-      full_name: me.profile.full_name,
-      avatar_url: me.profile.avatar_url,
-      timezone: me.profile.timezone || "UTC",
-    });
-    setUserTimezone(me.profile.timezone || "UTC");
-    setRole(mapRole(me.effective_role));
-    setPermissions(mapPermissions(me.permissions));
-    setMfaEnrolled(me.mfa_enabled);
-    setMfaRequired(me.mfa_required_by_msp && !me.mfa_enabled);
-    setSession({ accessToken, refreshToken: rt });
-  }, []);
-
-  const fetchMe = useCallback(
-    async (accessToken: string, depth = 0): Promise<void> => {
-      if (depth > 2) throw new Error("Sessao expirada");
-      const res = await apiFetch("/auth/me", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) {
-        const refresh = sessionStorage.getItem(REFRESH_KEY);
-        if (refresh) {
-          const r2 = await apiFetch("/auth/refresh", {
-            method: "POST",
-            body: JSON.stringify({ refresh_token: refresh }),
-          });
-          if (r2.ok) {
-            const t = (await r2.json()) as { access_token: string; refresh_token: string };
-            persistTokens(t.access_token, t.refresh_token);
-            return fetchMe(t.access_token, depth + 1);
-          }
+  const getCachedData = (userId: string): CachedUserData | null => {
+    try {
+      const cached = sessionStorage.getItem(`${CACHE_KEY_PREFIX}${userId}`);
+      if (cached) {
+        const parsed: CachedUserData = JSON.parse(cached);
+        if (Date.now() - parsed.timestamp < CACHE_TTL) {
+          return parsed;
         }
-        throw new Error("Sessao expirada");
+        sessionStorage.removeItem(`${CACHE_KEY_PREFIX}${userId}`);
       }
-      const me = (await res.json()) as MeApi;
-      applyMe(me, accessToken);
-    },
-    [applyMe]
-  );
+    } catch {
+      // Ignora cache
+    }
+    return null;
+  };
 
-  useEffect(() => {
-    const access = sessionStorage.getItem(ACCESS_KEY);
-    const refresh = sessionStorage.getItem(REFRESH_KEY);
-    if (!access || !refresh) {
-      setLoading(false);
+  const setCachedData = (userId: string, data: Omit<CachedUserData, 'timestamp'>) => {
+    try {
+      const cacheData: CachedUserData = {
+        ...data,
+        timestamp: Date.now(),
+      };
+      sessionStorage.setItem(`${CACHE_KEY_PREFIX}${userId}`, JSON.stringify(cacheData));
+    } catch {
+      // Ignora cache
+    }
+  };
+
+  const fetchUserData = async (userId: string) => {
+    if (fetchingRef.current && lastFetchedUserIdRef.current === userId) {
       return;
     }
-    setSession({ accessToken: access, refreshToken: refresh });
-    fetchMe(access)
-      .catch(() => {
-        clearTokens();
-        clearUserData();
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
-  }, [fetchMe, clearUserData]);
+    
+    const cached = getCachedData(userId);
+    if (cached) {
+      setProfile(cached.profile);
+      setRole(cached.role);
+      setPermissions(cached.permissions);
+      setUserTimezone(cached.profile.timezone || 'UTC');
+      setLoading(false);
+      lastFetchedUserIdRef.current = userId;
+      return;
+    }
+
+    fetchingRef.current = true;
+    lastFetchedUserIdRef.current = userId;
+
+    try {
+      const [profileResult, roleResult, permissionsResult] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).single(),
+        supabase.from('user_roles').select('role').eq('user_id', userId).single(),
+        supabase.from('user_module_permissions').select('module_name, permission').eq('user_id', userId),
+      ]);
+
+      const profileData = profileResult.data as UserProfile | null;
+      const roleData: any = roleResult.data || { role: 'user' };
+      const permissionsData = permissionsResult.data || [];
+
+      if (profileData) {
+        setProfile(profileData);
+        setUserTimezone(profileData.timezone || 'UTC');
+      }
+
+      const userRole = (roleData?.role as AppRole) || 'user';
+      setRole(userRole);
+
+      const perms = { ...defaultPermissions };
+      if (permissionsData) {
+        permissionsData.forEach((p: { module_name: string; permission: ModulePermission }) => {
+          if (p.module_name in perms) {
+            perms[p.module_name as keyof ModulePermissions] = p.permission;
+          }
+        });
+      }
+      setPermissions(perms);
+
+      if (profileData) {
+        setCachedData(userId, {
+          profile: profileData,
+          role: userRole,
+          permissions: perms,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      fetchingRef.current = false;
+      setLoading(false);
+    }
+  };
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true);
-    try {
-      const res = await apiFetch("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const detail = (data as { detail?: string }).detail || "Credenciais invalidas";
-        setLoading(false);
-        return { error: new Error(detail) };
-      }
-      if ("mfa_token" in data && (data as { status?: string }).status === "mfa_required") {
-        mfaTokenRef.current = (data as { mfa_token: string }).mfa_token;
-        setMfaStep(true);
-        setMfaRequired(true);
-        setLoading(false);
-        return { error: null };
-      }
-      if ("access_token" in data) {
-        const d = data as {
-          access_token: string;
-          refresh_token: string;
-          status?: string;
-        };
-        persistTokens(d.access_token, d.refresh_token);
-        if (d.status === "mfa_enrollment_required") {
-          setMfaRequired(true);
-          setMfaEnrolled(false);
-        }
-        await fetchMe(d.access_token);
-        setLoading(false);
-        return { error: null };
-      }
-      setLoading(false);
-      return { error: new Error("Resposta inesperada do servidor") };
-    } catch (e) {
-      setLoading(false);
-      return { error: e instanceof Error ? e : new Error("Falha de rede") };
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error: error as Error | null };
   };
 
   const verifyMfa = async (code: string) => {
-    const tok = mfaTokenRef.current;
-    if (!tok) return { error: new Error("Fluxo MFA invalido") };
-    setLoading(true);
     try {
-      const res = await apiFetch("/auth/mfa/verify", {
-        method: "POST",
-        body: JSON.stringify({ mfa_token: tok, code: code.replace(/\s/g, "") }),
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const totpFactor = factorsData?.totp?.find((f: any) => f.status === 'verified');
+      if (!totpFactor) return { error: new Error("Nenhum fator MFA verificado encontrado") };
+
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
+      if (challengeError) throw challengeError;
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: totpFactor.id,
+        challengeId: challengeData.id,
+        code: code.replace(/\s/g, ""),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const detail = (data as { detail?: string }).detail || "Codigo invalido";
-        setLoading(false);
-        return { error: new Error(detail) };
-      }
-      const d = data as { access_token: string; refresh_token: string };
-      mfaTokenRef.current = null;
+      if (verifyError) throw verifyError;
+
       setMfaStep(false);
-      persistTokens(d.access_token, d.refresh_token);
-      await fetchMe(d.access_token);
-      setLoading(false);
+      setMfaRequired(false);
       return { error: null };
-    } catch (e) {
-      setLoading(false);
-      return { error: e instanceof Error ? e : new Error("Falha de rede") };
+    } catch(err) {
+      return { error: err as Error };
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const mspId = import.meta.env.VITE_DEFAULT_MSP_ID as string | undefined;
-    if (!mspId) {
-      return { error: new Error("Cadastro publico nao configurado (VITE_DEFAULT_MSP_ID)") };
-    }
-    const res = await apiFetch("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({
-        email,
-        password,
-        full_name: fullName,
-        msp_id: mspId,
-      }),
+    const redirectUrl = `${window.location.origin}/`;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: { full_name: fullName },
+      },
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const detail = (data as { detail?: string }).detail || "Erro ao registrar";
-      return { error: new Error(detail) };
-    }
-    const d = data as { access_token: string; refresh_token: string };
-    persistTokens(d.access_token, d.refresh_token);
-    await fetchMe(d.access_token);
-    return { error: null };
+    return { error: error as Error | null };
   };
 
   const signOut = async () => {
-    const refresh = sessionStorage.getItem(REFRESH_KEY);
-    if (refresh) {
-      await apiFetch("/auth/logout", {
-        method: "POST",
-        body: JSON.stringify({ refresh_token: refresh }),
-      }).catch(() => {});
+    if (user?.id) {
+      sessionStorage.removeItem(`${CACHE_KEY_PREFIX}${user.id}`);
     }
-    clearTokens();
+    await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
     clearUserData();
   };
 
-  const refreshMfaStatus = async () => {
-    const access = sessionStorage.getItem(ACCESS_KEY);
-    if (!access) return;
-    try {
-      await fetchMe(access);
-    } catch {
-      /* ignore */
-    }
-  };
-
   const refreshProfile = async () => {
-    const access = sessionStorage.getItem(ACCESS_KEY);
-    if (!access) return;
+    if (!user?.id) return;
     try {
-      await fetchMe(access);
-    } catch {
-      /* ignore */
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (data) {
+        const profileData = data as UserProfile;
+        setProfile(profileData);
+        setUserTimezone(profileData.timezone || 'UTC');
+        sessionStorage.removeItem(`${CACHE_KEY_PREFIX}${user.id}`);
+        lastFetchedUserIdRef.current = null;
+      }
+    } catch (err) {
+      console.error('Error refreshing profile:', err);
     }
   };
 
   const hasPermission = (module: keyof ModulePermissions, required: ModulePermission): boolean => {
-    if (role === "super_admin") return true;
+    if (role === 'super_admin') return true;
     const current = permissions[module];
-    const levels: ModulePermission[] = ["view", "edit", "full"];
+    const levels: ModulePermission[] = ['view', 'edit', 'full'];
     return levels.indexOf(current) >= levels.indexOf(required);
   };
 
-  const isAdmin = () => role === "super_admin" || role === "workspace_admin";
-  const isSuperAdmin = () => role === "super_admin";
+  const isAdmin = () => role === 'super_admin' || role === 'workspace_admin';
+  const isSuperAdmin = () => role === 'super_admin';
 
   return (
     <AuthContext.Provider
@@ -373,7 +349,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
+

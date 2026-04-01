@@ -1,0 +1,1 @@
+ALTER TYPE public.blueprint_executor_type ADD VALUE IF NOT EXISTS 'monitor';

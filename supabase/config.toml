@@ -1,0 +1,185 @@
+project_id = "akbosdbyheezghieiefz"
+
+[functions.connect-m365-tenant]
+verify_jwt = false
+
+[functions.register-agent]
+verify_jwt = false
+
+[functions.agent-heartbeat]
+verify_jwt = false
+
+[functions.agent-refresh]
+verify_jwt = false
+
+[functions.agent-tasks]
+verify_jwt = false
+
+[functions.agent-step-result]
+verify_jwt = false
+
+[functions.agent-task-result]
+verify_jwt = false
+
+[functions.validate-m365-permissions]
+verify_jwt = false
+
+[functions.agent-install]
+verify_jwt = false
+
+[functions.agent-monitor-blueprint]
+verify_jwt = false
+
+[functions.entra-id-security-insights]
+verify_jwt = false
+
+[functions.exchange-online-insights]
+verify_jwt = false
+
+[functions.subdomain-enum]
+verify_jwt = false
+
+[functions.get-user-preview-data]
+verify_jwt = false
+
+[functions.m365-security-posture]
+verify_jwt = false
+
+[functions.m365-check-intune]
+verify_jwt = false
+
+[functions.m365-check-pim]
+verify_jwt = false
+
+[functions.m365-check-sharepoint]
+verify_jwt = false
+
+[functions.m365-check-teams]
+verify_jwt = false
+
+[functions.m365-check-defender]
+verify_jwt = false
+
+[functions.trigger-m365-posture-analysis]
+verify_jwt = false
+
+[functions.test-m365-exchange-connection]
+verify_jwt = false
+
+[functions.setup-exchange-rbac]
+verify_jwt = false
+
+[functions.add-exchange-permission]
+verify_jwt = false
+
+[functions.ensure-exchange-permission]
+verify_jwt = false
+
+[functions.manage-api-keys]
+verify_jwt = false
+
+[functions.m365-cves]
+verify_jwt = false
+
+[functions.run-scheduled-analyses]
+verify_jwt = false
+
+[functions.manage-firewall-credentials]
+verify_jwt = false
+
+[functions.refresh-cve-cache]
+verify_jwt = false
+
+[functions.trigger-firewall-analyzer]
+verify_jwt = false
+
+[functions.firewall-analyzer]
+verify_jwt = false
+
+[functions.attack-surface-scan]
+verify_jwt = false
+
+[functions.run-attack-surface-queue]
+verify_jwt = false
+
+[functions.attack-surface-step-result]
+verify_jwt = false
+
+[functions.check-attack-surface-progress]
+verify_jwt = false
+
+[functions.super-agent-install]
+verify_jwt = false
+
+[functions.cancel-attack-surface-scan]
+verify_jwt = false
+
+[functions.attack-surface-rescan-ip]
+verify_jwt = false
+
+[functions.attack-surface-preview]
+verify_jwt = false
+
+[functions.dehashed-search]
+verify_jwt = false
+
+[functions.resolve-firewall-geo]
+verify_jwt = false
+
+[functions.get-map-config]
+verify_jwt = false
+
+[functions.consolidate-attack-surface]
+verify_jwt = false
+
+[functions.m365-tenant-licenses]
+verify_jwt = false
+
+[functions.fortinet-hardware-eol]
+verify_jwt = false
+
+[functions.agent-commands]
+verify_jwt = false
+
+[functions.trigger-m365-analyzer]
+verify_jwt = false
+
+[functions.m365-analyzer]
+verify_jwt = false
+
+[functions.get-release-url]
+verify_jwt = false
+
+[functions.m365-external-movement]
+verify_jwt = false
+
+[functions.m365-service-health]
+verify_jwt = false
+
+[functions.entra-id-dashboard]
+verify_jwt = false
+
+[functions.exchange-dashboard]
+verify_jwt = false
+
+[functions.collaboration-dashboard]
+verify_jwt = false
+
+[functions.force-logout-all]
+verify_jwt = false
+
+[functions.domain-whois-lookup]
+verify_jwt = false
+
+[functions.cleanup-expired-tasks]
+verify_jwt = false
+
+[functions.trigger-external-domain-analysis]
+verify_jwt = false
+
+[functions.agent-monitor]
+verify_jwt = false
+
+[functions.agent-fix]
+verify_jwt = false
+

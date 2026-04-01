@@ -1,0 +1,1 @@
+ALTER TABLE public.firewalls ADD COLUMN cloud_public_ip text;

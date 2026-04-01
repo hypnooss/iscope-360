@@ -1,0 +1,1 @@
+ALTER TABLE cve_severity_cache ADD COLUMN top_cves jsonb DEFAULT '[]'::jsonb;

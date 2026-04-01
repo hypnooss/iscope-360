@@ -1,0 +1,1 @@
+ALTER TABLE cve_sources ADD COLUMN next_run_at timestamptz;

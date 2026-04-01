@@ -1,0 +1,1 @@
+UPDATE compliance_rules SET evaluation_logic = evaluation_logic || '{"source_key": "firewall_policy"}'::jsonb WHERE code = 'net-004';

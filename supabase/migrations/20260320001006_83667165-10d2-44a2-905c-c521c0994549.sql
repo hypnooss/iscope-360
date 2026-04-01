@@ -1,0 +1,1 @@
+ALTER TABLE agent_metrics ADD COLUMN IF NOT EXISTS disk_partitions jsonb DEFAULT NULL;

@@ -2,18 +2,6 @@ version: "3.9"
 
 services:
 
-  postgres:
-    image: postgres:15
-    container_name: iscope-postgres
-    environment:
-      POSTGRES_USER: iscope
-      POSTGRES_PASSWORD: iscope
-      POSTGRES_DB: iscope
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   rabbitmq:
     image: rabbitmq:3-management
     container_name: iscope-rabbitmq
@@ -21,47 +9,10 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  minio:
-    image: minio/minio
-    container_name: iscope-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: iscope
-      MINIO_ROOT_PASSWORD: iscope123
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
-
-  api:
-    build: ./api
-    container_name: iscope-api
-    depends_on:
-      - postgres
-      - rabbitmq
-      - minio
-    environment:
-      DATABASE_URL: postgres://iscope:iscope@postgres:5432/iscope
-      RABBITMQ_URL: amqp://rabbitmq:5672
-      S3_ENDPOINT: http://minio:9000
-      JWT_SECRET: ${JWT_SECRET:-change-me-use-openssl-rand-hex-32-in-production}
-      CORS_ORIGINS: "*"
-      DEBUG: "true"
-    ports:
-      - "8000:8000"
-
   web:
     build:
       context: ./web
-      args:
-        VITE_API_URL: http://10.19.9.190:8000
     container_name: iscope-web
-    depends_on:
-      - api
     ports:
       - "80:80"
 
-volumes:
-  postgres_data:
-  minio_data:
