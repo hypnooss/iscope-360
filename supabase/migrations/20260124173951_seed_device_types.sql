@@ -7,5 +7,6 @@
 INSERT INTO public.device_types (id, code, name, vendor, category, icon, is_active)
 VALUES 
   ('22d07d7d-7b53-4ad4-8061-f1c6ad81da48', 'sonicwall', 'SonicWall TZ', 'SonicWall', 'firewall', 'Shield', true),
-  ('d5562218-5a3d-4ca6-9591-03e220dbf7e1', 'external_domain', 'External Domain', 'Generic', 'other', 'Cloud', true)
+  ('d5562218-5a3d-4ca6-9591-03e220dbf7e1', 'external_domain', 'External Domain', 'Generic', 'other', 'Cloud', true),
+  ('c2d829a3-4f86-49cd-851f-fa3f10c4fcf6', 'fortigate', 'Fortigate', 'Fortinet', 'firewall', 'Shield', true)
 ON CONFLICT (id) DO NOTHING;
