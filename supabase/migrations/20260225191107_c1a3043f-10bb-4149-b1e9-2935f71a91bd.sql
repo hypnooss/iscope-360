@@ -1,1 +1,0 @@
-ALTER TABLE public.agents ADD COLUMN shell_session_active boolean NOT NULL DEFAULT false;

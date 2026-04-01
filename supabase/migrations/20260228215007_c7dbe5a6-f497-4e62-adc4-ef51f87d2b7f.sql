@@ -1,1 +1,0 @@
-ALTER TABLE public.m365_global_config ADD COLUMN IF NOT EXISTS home_tenant_id text;

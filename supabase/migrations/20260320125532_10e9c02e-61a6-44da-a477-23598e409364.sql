@@ -1,1 +1,0 @@
-ALTER TABLE public.agent_metrics ADD COLUMN net_interfaces jsonb DEFAULT NULL;

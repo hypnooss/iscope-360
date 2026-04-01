@@ -1,2 +1,0 @@
-INSERT INTO cve_sources (module_code, source_type, source_label, config, is_active)
-VALUES ('external_domain', 'nist_nvd_web', 'Microsoft IIS', '{"product_filter": "internet_information_services"}', true);

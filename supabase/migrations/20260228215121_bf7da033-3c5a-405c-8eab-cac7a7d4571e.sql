@@ -1,1 +1,0 @@
-UPDATE public.m365_global_config SET home_tenant_id = 'aa4c9de9-9a98-41f7-9aa0-bfd6401fc27c', app_object_id = 'aad7eba1-63ae-4e33-8e8b-09ecbf159157' WHERE id = '9ec8881e-7b3e-4fff-8070-0ef5cc3e7708';

@@ -1,1 +1,0 @@
-ALTER TABLE public.m365_global_config DROP COLUMN IF EXISTS home_tenant_id;

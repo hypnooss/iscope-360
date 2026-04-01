@@ -1,1 +1,0 @@
-ALTER TYPE public.schedule_frequency ADD VALUE IF NOT EXISTS 'hourly';

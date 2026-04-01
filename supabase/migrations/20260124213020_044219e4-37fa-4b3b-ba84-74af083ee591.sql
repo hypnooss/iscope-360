@@ -1,1 +1,0 @@
--- Migração desativada: O insert causava erro de Foreign Key pois a tabela 'device_types' só recebe o ID 22d07d7d-7b53-4ad4-8061-f1c6ad81da48 na migração de fevereiro.
