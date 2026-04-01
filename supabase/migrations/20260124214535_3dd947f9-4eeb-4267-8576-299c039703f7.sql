@@ -1,6 +1,5 @@
-
 -- =============================================================
--- ENRIQUECER COLETA E COMPLIANCE DO SONICWALL
+-- Inserts removidos para usar a migração de Fevereiro. DO SONICWALL
 -- =============================================================
 
 -- 1. ATUALIZAR BLUEPRINT DO SONICWALL COM NOVOS ENDPOINTS
@@ -208,56 +207,7 @@ SET collection_steps = '{
 updated_at = now()
 WHERE id = 'f1c656c0-75ed-43c6-b0a3-696498833094';
 
--- 2. INSERIR 18 NOVAS REGRAS DE COMPLIANCE
--- =============================================================
-
--- SEGURANÇA DE PERÍMETRO (UTM)
-INSERT INTO compliance_rules (device_type_id, code, name, description, category, severity, weight, evaluation_logic, pass_description, fail_description, recommendation)
-VALUES
--- Gateway Antivírus
-('22d07d7d-7b53-4ad4-8061-f1c6ad81da48', 'SW_GAV_ENABLED', 'Gateway Antivírus Ativo', 
- 'Verifica se o Gateway Antivírus está habilitado para inspeção de tráfego',
- 'Segurança de Perímetro', 'high', 3,
- '{"type": "field_check", "data_source": "gateway_av", "field_path": "gateway_anti_virus.enable", "operator": "equals", "expected_value": true}'::jsonb,
- 'Gateway Antivírus está ativo e protegendo o tráfego',
- 'Gateway Antivírus está desabilitado, deixando a rede vulnerável a malware',
- 'Habilite o Gateway Antivírus em Security Services > Gateway Anti-Virus'),
-
--- IPS
-('22d07d7d-7b53-4ad4-8061-f1c6ad81da48', 'SW_IPS_ENABLED', 'Prevenção de Intrusão Ativa',
- 'Verifica se o IPS (Intrusion Prevention System) está habilitado',
- 'Segurança de Perímetro', 'high', 3,
- '{"type": "field_check", "data_source": "ips", "field_path": "intrusion_prevention.enable", "operator": "equals", "expected_value": true}'::jsonb,
- 'IPS está ativo e protegendo contra ataques',
- 'IPS está desabilitado, deixando a rede vulnerável a exploits',
- 'Habilite o IPS em Security Services > Intrusion Prevention'),
-
--- Anti-Spyware
-('22d07d7d-7b53-4ad4-8061-f1c6ad81da48', 'SW_ANTISPYWARE_ENABLED', 'Anti-Spyware Ativo',
- 'Verifica se o serviço Anti-Spyware está habilitado',
- 'Segurança de Perímetro', 'high', 3,
- '{"type": "field_check", "data_source": "anti_spyware", "field_path": "anti_spyware.enable", "operator": "equals", "expected_value": true}'::jsonb,
- 'Anti-Spyware está ativo e bloqueando ameaças',
- 'Anti-Spyware está desabilitado',
- 'Habilite o Anti-Spyware em Security Services > Anti-Spyware'),
-
--- App Control
-('22d07d7d-7b53-4ad4-8061-f1c6ad81da48', 'SW_APPCONTROL_ENABLED', 'Controle de Aplicações Ativo',
- 'Verifica se o App Control está habilitado para visibilidade de aplicações',
- 'Segurança de Perímetro', 'medium', 2,
- '{"type": "field_check", "data_source": "app_control", "field_path": "app_control.enable", "operator": "equals", "expected_value": true}'::jsonb,
- 'Controle de Aplicações está ativo',
- 'Controle de Aplicações está desabilitado, sem visibilidade de apps',
- 'Habilite App Control em Security Services > App Control'),
-
--- Content Filter
-('22d07d7d-7b53-4ad4-8061-f1c6ad81da48', 'SW_CONTENTFILTER_ENABLED', 'Filtro de Conteúdo Ativo',
- 'Verifica se o Content Filter está habilitado',
- 'Segurança de Perímetro', 'medium', 2,
- '{"type": "field_check", "data_source": "content_filter", "field_path": "content_filter.enable", "operator": "equals", "expected_value": true}'::jsonb,
- 'Filtro de Conteúdo está ativo',
- 'Filtro de Conteúdo está desabilitado',
- 'Habilite Content Filter em Security Services > Content Filter');
+-- Migração desativada: Script legado removido para evitar conflitos de UNIQUE CONSTANT (device_type_id, code) com os scripts corrigidos lançados em fevereiro.
 
 -- POLÍTICAS DE SEGURANÇA
 INSERT INTO compliance_rules (device_type_id, code, name, description, category, severity, weight, evaluation_logic, pass_description, fail_description, recommendation)
